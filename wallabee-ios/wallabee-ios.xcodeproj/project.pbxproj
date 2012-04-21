@@ -8,15 +8,16 @@
 
 /* Begin PBXBuildFile section */
 		53E4B63D154319B100F1820F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 53E4B63C154319B100F1820F /* Foundation.framework */; };
-		53E4B643154319B100F1820F /* wallabee_ios.m in Sources */ = {isa = PBXBuildFile; fileRef = 53E4B642154319B100F1820F /* wallabee_ios.m */; };
+		53E4B64B15431A7300F1820F /* WBSession.h in Headers */ = {isa = PBXBuildFile; fileRef = 53E4B64915431A7300F1820F /* WBSession.h */; };
+		53E4B64C15431A7300F1820F /* WBSession.m in Sources */ = {isa = PBXBuildFile; fileRef = 53E4B64A15431A7300F1820F /* WBSession.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		53E4B639154319B100F1820F /* libwallabee-ios.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libwallabee-ios.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		53E4B63C154319B100F1820F /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		53E4B640154319B100F1820F /* wallabee-ios-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "wallabee-ios-Prefix.pch"; sourceTree = "<group>"; };
-		53E4B641154319B100F1820F /* wallabee_ios.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wallabee_ios.h; sourceTree = "<group>"; };
-		53E4B642154319B100F1820F /* wallabee_ios.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = wallabee_ios.m; sourceTree = "<group>"; };
+		53E4B64915431A7300F1820F /* WBSession.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WBSession.h; sourceTree = "<group>"; };
+		53E4B64A15431A7300F1820F /* WBSession.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WBSession.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,9 +60,9 @@
 		53E4B63E154319B100F1820F /* wallabee-ios */ = {
 			isa = PBXGroup;
 			children = (
-				53E4B641154319B100F1820F /* wallabee_ios.h */,
-				53E4B642154319B100F1820F /* wallabee_ios.m */,
 				53E4B63F154319B100F1820F /* Supporting Files */,
+				53E4B64915431A7300F1820F /* WBSession.h */,
+				53E4B64A15431A7300F1820F /* WBSession.m */,
 			);
 			path = "wallabee-ios";
 			sourceTree = "<group>";
@@ -81,6 +82,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				53E4B64B15431A7300F1820F /* WBSession.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -135,7 +137,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				53E4B643154319B100F1820F /* wallabee_ios.m in Sources */,
+				53E4B64C15431A7300F1820F /* WBSession.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -163,6 +165,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 5.1;
 				SDKROOT = iphoneos;
+				VALID_ARCHS = "armv6 armv7 i386";
 			};
 			name = Debug;
 		};
@@ -181,6 +184,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 5.1;
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
+				VALID_ARCHS = "armv6 armv7 i386";
 			};
 			name = Release;
 		};
@@ -227,6 +231,7 @@
 				53E4B648154319B100F1820F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
