@@ -25,4 +25,6 @@
 // Returns a response object (same as makeSyncRequest), however runs asynchronously, and performs
 // Response handler when the request is completed.
 + (void)makeAsyncRequest:(NSString *)request result:(void(^)(id response))resultHandler;
+
++ (NSString *)errorStringForResult:(id)result;
 @end

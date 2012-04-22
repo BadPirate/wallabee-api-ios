@@ -16,6 +16,19 @@
 
 @implementation WBSession
 @synthesize maxRequestRate, wallabeeAPIKey, lastRequest, coolDownLock, asyncRequestQueue;
++ (NSString *)errorStringForResult:(id)result
+{
+    NSString *message = [result description];
+    if([result isKindOfClass:[NSError class]])
+    {
+        NSDictionary *userInfo = [(NSError *)result userInfo];
+        if([userInfo isKindOfClass:[NSDictionary class]] && 
+           [userInfo objectForKey:@"error"])
+            message = [[(NSError *)result userInfo] objectForKey:@"error"];
+        else message = [(NSError *)result localizedDescription];
+    }
+    return message;
+}
 
 + (WBSession *)instance
 {
@@ -62,6 +75,7 @@
     NSURL *URL = [NSURL URLWithString:URLString];
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:URL];
     [request addValue:wallabeeAPIKey forHTTPHeaderField:@"X-WallaBee-API-Key"];
+    NSLog(@"Request - %@",URLString);
     return request;
 }
 
@@ -73,8 +87,30 @@
     id parsedObject = [NSJSONSerialization JSONObjectWithData:data
                                                       options:kNilOptions
                                                         error:&parsingError];
+    NSLog(@"Parse Response - %@",parsedObject);
     if(parsingError)
         return parsingError;
+    if([response isKindOfClass:[NSHTTPURLResponse class]])
+    {
+        NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+        switch ([httpResponse statusCode]) {
+            case 200: // Success
+            case 201: // Created
+            case 204: // No Content
+                return parsedObject;
+            case 400:
+            case 401:
+            case 403:
+            case 404:
+            case 500:
+            default:
+            {
+                NSError *error = [NSError errorWithDomain:@"WALLABEE" code:[httpResponse statusCode] userInfo:parsedObject];
+                return error;
+            }
+        }
+    }
+
     return parsedObject;
 }
 

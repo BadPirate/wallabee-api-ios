@@ -10,6 +10,17 @@
 		53E4B63D154319B100F1820F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 53E4B63C154319B100F1820F /* Foundation.framework */; };
 		53E4B64B15431A7300F1820F /* WBSession.h in Headers */ = {isa = PBXBuildFile; fileRef = 53E4B64915431A7300F1820F /* WBSession.h */; };
 		53E4B64C15431A7300F1820F /* WBSession.m in Sources */ = {isa = PBXBuildFile; fileRef = 53E4B64A15431A7300F1820F /* WBSession.m */; };
+		53E4B677154332C800F1820F /* WBPlace.h in Headers */ = {isa = PBXBuildFile; fileRef = 53E4B675154332C800F1820F /* WBPlace.h */; };
+		53E4B678154332C800F1820F /* WBPlace.m in Sources */ = {isa = PBXBuildFile; fileRef = 53E4B676154332C800F1820F /* WBPlace.m */; };
+		53E4B67A15433ADD00F1820F /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 53E4B67915433ADD00F1820F /* CoreLocation.framework */; };
+		53E4B67D15433D6100F1820F /* WBLocationManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 53E4B67B15433D6100F1820F /* WBLocationManager.h */; };
+		53E4B67E15433D6100F1820F /* WBLocationManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 53E4B67C15433D6100F1820F /* WBLocationManager.m */; };
+		53E4B6851543543900F1820F /* WBUser.h in Headers */ = {isa = PBXBuildFile; fileRef = 53E4B6831543543900F1820F /* WBUser.h */; };
+		53E4B6861543543900F1820F /* WBUser.m in Sources */ = {isa = PBXBuildFile; fileRef = 53E4B6841543543900F1820F /* WBUser.m */; };
+		53E4B6891543B5E300F1820F /* WBSet.h in Headers */ = {isa = PBXBuildFile; fileRef = 53E4B6871543B5E300F1820F /* WBSet.h */; };
+		53E4B68A1543B5E300F1820F /* WBSet.m in Sources */ = {isa = PBXBuildFile; fileRef = 53E4B6881543B5E300F1820F /* WBSet.m */; };
+		53E4B68D1543BF0D00F1820F /* WBItem.h in Headers */ = {isa = PBXBuildFile; fileRef = 53E4B68B1543BF0C00F1820F /* WBItem.h */; };
+		53E4B68E1543BF0D00F1820F /* WBItem.m in Sources */ = {isa = PBXBuildFile; fileRef = 53E4B68C1543BF0C00F1820F /* WBItem.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -18,6 +29,17 @@
 		53E4B640154319B100F1820F /* wallabee-ios-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "wallabee-ios-Prefix.pch"; sourceTree = "<group>"; };
 		53E4B64915431A7300F1820F /* WBSession.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WBSession.h; sourceTree = "<group>"; };
 		53E4B64A15431A7300F1820F /* WBSession.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WBSession.m; sourceTree = "<group>"; };
+		53E4B675154332C800F1820F /* WBPlace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WBPlace.h; sourceTree = "<group>"; };
+		53E4B676154332C800F1820F /* WBPlace.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WBPlace.m; sourceTree = "<group>"; };
+		53E4B67915433ADD00F1820F /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+		53E4B67B15433D6100F1820F /* WBLocationManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WBLocationManager.h; sourceTree = "<group>"; };
+		53E4B67C15433D6100F1820F /* WBLocationManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WBLocationManager.m; sourceTree = "<group>"; };
+		53E4B6831543543900F1820F /* WBUser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WBUser.h; sourceTree = "<group>"; };
+		53E4B6841543543900F1820F /* WBUser.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WBUser.m; sourceTree = "<group>"; };
+		53E4B6871543B5E300F1820F /* WBSet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WBSet.h; sourceTree = "<group>"; };
+		53E4B6881543B5E300F1820F /* WBSet.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WBSet.m; sourceTree = "<group>"; };
+		53E4B68B1543BF0C00F1820F /* WBItem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WBItem.h; sourceTree = "<group>"; };
+		53E4B68C1543BF0C00F1820F /* WBItem.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WBItem.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -25,6 +47,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				53E4B67A15433ADD00F1820F /* CoreLocation.framework in Frameworks */,
 				53E4B63D154319B100F1820F /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -53,6 +76,7 @@
 			isa = PBXGroup;
 			children = (
 				53E4B63C154319B100F1820F /* Foundation.framework */,
+				53E4B67915433ADD00F1820F /* CoreLocation.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -63,6 +87,16 @@
 				53E4B63F154319B100F1820F /* Supporting Files */,
 				53E4B64915431A7300F1820F /* WBSession.h */,
 				53E4B64A15431A7300F1820F /* WBSession.m */,
+				53E4B67B15433D6100F1820F /* WBLocationManager.h */,
+				53E4B67C15433D6100F1820F /* WBLocationManager.m */,
+				53E4B675154332C800F1820F /* WBPlace.h */,
+				53E4B676154332C800F1820F /* WBPlace.m */,
+				53E4B6831543543900F1820F /* WBUser.h */,
+				53E4B6841543543900F1820F /* WBUser.m */,
+				53E4B6871543B5E300F1820F /* WBSet.h */,
+				53E4B6881543B5E300F1820F /* WBSet.m */,
+				53E4B68B1543BF0C00F1820F /* WBItem.h */,
+				53E4B68C1543BF0C00F1820F /* WBItem.m */,
 			);
 			path = "wallabee-ios";
 			sourceTree = "<group>";
@@ -83,6 +117,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				53E4B64B15431A7300F1820F /* WBSession.h in Headers */,
+				53E4B677154332C800F1820F /* WBPlace.h in Headers */,
+				53E4B67D15433D6100F1820F /* WBLocationManager.h in Headers */,
+				53E4B6851543543900F1820F /* WBUser.h in Headers */,
+				53E4B6891543B5E300F1820F /* WBSet.h in Headers */,
+				53E4B68D1543BF0D00F1820F /* WBItem.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -138,6 +177,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				53E4B64C15431A7300F1820F /* WBSession.m in Sources */,
+				53E4B678154332C800F1820F /* WBPlace.m in Sources */,
+				53E4B67E15433D6100F1820F /* WBLocationManager.m in Sources */,
+				53E4B6861543543900F1820F /* WBUser.m in Sources */,
+				53E4B68A1543B5E300F1820F /* WBSet.m in Sources */,
+				53E4B68E1543BF0D00F1820F /* WBItem.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
