@@ -10,21 +10,23 @@
 #import "WBSession.h"
 #import <CoreLocation/CoreLocation.h>
 #import "WBLocationManager.h"
+#import "WBItem.h"
 
 @interface WBPlace ()
 @property (nonatomic,retain) NSDictionary *data;
+@property (nonatomic,retain) NSMutableArray *items;
 @end
 
 @implementation WBPlace
-@synthesize identifier = _identifier, data;
-- (id)initWithIdentifier:(NSUInteger)identifier
+@synthesize  data, items;
+- (id)initWithIdentifier:(NSInteger)placeIdentifier
 {
     self = [super init];
-    _identifier = identifier;
+    _placeIdentifier = placeIdentifier;
     return self;
 }
 
-+ (void)nearbyAsync:(void(^)(id result))handler
++ (void)nearby_a:(void(^)(id result))handler
 {
     // Run in background, so that waiting for location doesn't jam up main thread.
     
@@ -36,21 +38,21 @@
                            handler(currentLocation); // error
                            return;
                        }
-                       id result = [self nearLocationSync:currentLocation];
+                       id result = [self nearLocation_s:currentLocation.coordinate];
                        handler(result);
                    });
 }
 
-+ (id)nearLocationSync:(CLLocation *)location
++ (id)nearLocation_s:(CLLocationCoordinate2D)coordinate
 {
-    NSString *requestString = [NSString stringWithFormat:@"/places?lat=%f&lng=%f",location.coordinate.latitude,location.coordinate.longitude];
-    id result = [WBSession makeSyncRequest:requestString];
-    if(![result isKindOfClass:[NSArray class]])
+    NSString *requestString = [NSString stringWithFormat:@"/places?lat=%f&lng=%f",coordinate.latitude,coordinate.longitude];
+    NSDictionary *result = [WBSession makeSyncRequest:requestString];
+    if(![result isKindOfClass:[NSDictionary class]])
     {
         return result;
     }
     // Parse it!
-    NSArray *resultArray = (NSArray *)result;
+    NSArray *resultArray = [result objectForKey:@"places"];
     NSMutableArray *places = [NSMutableArray arrayWithCapacity:[resultArray count]];
     for(NSDictionary *placeDictionary in resultArray)
     {
@@ -59,7 +61,7 @@
     return places;
 }
 
-+ (id)placeWithIdentifier:(NSUInteger)placeIdentifier
++ (id)placeWithIdentifier:(NSInteger)placeIdentifier
 {
     WBPlace *place = [[self alloc] initWithIdentifier:placeIdentifier];
     return place;
@@ -74,11 +76,83 @@
     return place;
 }
 
-- (void)loadPlaceData
+- (id)loadPlaceData
 {
-    NSString *requestString = [NSString stringWithFormat:@"/places/%u",_identifier];
+    NSString *requestString = [NSString stringWithFormat:@"/places/%u",[self placeIdentifier]];
     id response = [WBSession makeSyncRequest:requestString];
-    if(![response isKindOfClass:[NSDictionary dictionary]])
+    if([response isKindOfClass:[NSDictionary dictionary]])
+    {
         self.data = response;
+        return response;
+    }
+    else
+        return response;
+}
+
+- (NSInteger)itemCount
+{
+    return [[data objectForKey:@"item_count"] intValue];
+}
+
+- (id)items_s
+{
+    if([self itemCount] == 0)
+        return [NSMutableArray array];
+    @synchronized(self)
+    {
+        if(!items)
+            items = [NSMutableArray array];
+    }
+    @synchronized(items)
+    {
+        if([items count] > 0)
+            return items;
+        NSString *requestString = [NSString stringWithFormat:@"/places/%u/items",[self placeIdentifier]];
+        NSDictionary *result = [WBSession makeSyncRequest:requestString];
+        if(![result isKindOfClass:[NSDictionary class]])
+            return result;
+        NSArray *itemsArray = [result objectForKey:@"items"];
+        for(NSDictionary *itemDictionary in itemsArray)
+        {
+            WBItem *item = [[WBItem alloc] initWithDictionary:itemDictionary];
+            item.place = self;
+            [items addObject:item];
+        }
+        return items;
+    }
+}
+
+- (id)name_s
+{
+    if(!data)
+    {
+        id result = [self loadPlaceData];
+        if(![result isKindOfClass:[NSDictionary class]])
+            return result;
+    }
+    return [data objectForKey:@"name"];
+}
+
+- (CLLocationCoordinate2D)coordinate_s
+{
+    if(!data)
+    {
+        id result = [self loadPlaceData];
+        if(![result isKindOfClass:[NSDictionary class]])
+            return CLLocationCoordinate2DMake(0, 0);
+    }
+    CLLocationCoordinate2D coordinate;
+    coordinate.latitude = [[data objectForKey:@"lat"] doubleValue];
+    coordinate.longitude = [[data objectForKey:@"lng"] doubleValue];
+    return coordinate;
+}
+
+- (NSUInteger)placeIdentifier
+{
+    if(_placeIdentifier)
+        return _placeIdentifier;
+    if([data objectForKey:@"id"])
+        return [[data objectForKey:@"id"] intValue];
+    return -1;
 }
 @end

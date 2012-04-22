@@ -15,17 +15,15 @@
 @property (nonatomic,retain) NSDictionary *data;
 @property (nonatomic,retain) WBUser *user;
 @property (nonatomic,retain) NSMutableArray *items;
-@property (nonatomic,assign) NSUInteger identifier;
 @end
 
 @implementation WBSet
-@synthesize data, user, items, identifier;
+@synthesize data, user, items;
 
 - (id)initSetWithData:(NSDictionary *)dataDictionary user:(WBUser *)userPassed
 {
     self = [super init];
     data = dataDictionary;
-    identifier = [[dataDictionary objectForKey:@"id"] intValue];
     user = userPassed;
     return self;
 }
@@ -37,9 +35,9 @@
     return NO;
 }
 
-- (NSUInteger)identifier
+- (NSInteger)setIdentifier
 {
-    return identifier;
+    return [[data objectForKey:@"id"] intValue];
 }
 
 - (id)items_s
@@ -47,7 +45,7 @@
     if(items) return items;
     if([self isUserSet])
     {
-        NSString *requestString = [NSString stringWithFormat:@"/users/%u/sets/%u",[user identifier],[self identifier]];
+        NSString *requestString = [NSString stringWithFormat:@"/users/%u/sets/%u",[user userIdentifier],[self setIdentifier]];
         NSDictionary *result = [WBSession makeSyncRequest:requestString];
         if(![result isKindOfClass:[NSDictionary class]])
             return result;
@@ -55,7 +53,9 @@
         items = [NSMutableArray arrayWithCapacity:[itemsArray count]];
         for(NSDictionary *itemDictionary in itemsArray)
         {
-            WBItem *item = [[WBItem alloc] initWithDictionary:itemDictionary set:self user:user];
+            WBItem *item = [[WBItem alloc] initWithDictionary:itemDictionary];
+            item.user = user;
+            item.set = self;
             [items addObject:item];
         }
         return items;

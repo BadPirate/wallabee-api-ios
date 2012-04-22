@@ -12,16 +12,29 @@
 @interface WBPlace : NSObject
 {
     @private
-    NSUInteger _identifier;
+    NSInteger _placeIdentifier;
 }
-@property (nonatomic, readonly) NSUInteger identifier;
-
 // Gets the users location, and returns an NSMutableArray of WBPlace objects or NSError to the handler
-+ (void)nearbyAsync:(void(^)(id result))handler;
++ (void)nearby_a:(void(^)(id result))handler;
 
 // Makes a synchronous call and returns the result near a particular location
-+ (id)nearLocationSync:(CLLocation *)location;
++ (id)nearLocation_s:(CLLocationCoordinate2D)coordinate;
 
 // Return value can be WBPlace object or NSError
-+ (id)placeWithIdentifier:(NSUInteger)identifier;
++ (id)placeWithIdentifier:(NSInteger)placeIdentifier;
+
+// Synchronous - Returns an NSMutableArray of WBItem objects or NSError
+- (id)items_s;
+
+// Returns the item count
+- (NSInteger)itemCount;
+
+// Returns the NSString name of a place, or NSError
+- (id)name_s;
+
+// Returns the coordinate of place, with coordinate 0/0 if there is an error
+- (CLLocationCoordinate2D)coordinate_s;
+
+// Returns the identifier for this place
+- (NSUInteger)placeIdentifier;
 @end

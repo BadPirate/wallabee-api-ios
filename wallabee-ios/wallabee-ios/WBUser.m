@@ -9,22 +9,22 @@
 #import "WBUser.h"
 #import "WBSession.h"
 #import "WBSet.h"
+#import "WBItem.h"
 
 @interface WBUser ()
 @property (nonatomic, retain) NSDictionary *data;
 @property (nonatomic, assign) NSInteger completedSets;
-@property (nonatomic, assign) NSUInteger userIdentifier;
 @property (nonatomic, retain) NSMutableArray *collectedItems, *sets;
+@property (nonatomic, retain) NSMutableDictionary *collectedItemsByType;
 @end
 
 @implementation WBUser
-@synthesize data, completedSets, userIdentifier, collectedItems, sets;
+@synthesize data, completedSets, collectedItems, collectedItemsByType, sets;
 - (id)initWithData:(NSDictionary *)dataDictionary
 {
     self = [super init];
     self.data = dataDictionary;
     self.completedSets = -1; // Need to fetch data
-    self.userIdentifier = [[dataDictionary objectForKey:@"id"] intValue];
     return self;
 }
 
@@ -66,9 +66,9 @@
     return sets;
 }
 
-- (NSUInteger)identifier
+- (NSInteger)userIdentifier
 {
-    return userIdentifier;
+    return [[data objectForKey:@"id"] intValue];
 }
 
 - (id)collectedItems_s
@@ -86,5 +86,36 @@
         [collectedItems addObjectsFromArray:collectedItemsForSet];
     }
     return collectedItems;
+}
+
+- (id)collectedItemsByType_s
+{
+    NSMutableArray *allCollectedItems = [self collectedItems_s];
+    if(![allCollectedItems isKindOfClass:[NSMutableArray class]])
+        return allCollectedItems;
+    if([allCollectedItems count] == 0)
+        return allCollectedItems;
+    @synchronized(self)
+    {
+        if(!collectedItemsByType)
+            collectedItemsByType = [NSMutableDictionary dictionary];
+    }
+    @synchronized(collectedItemsByType)
+    {
+        if([collectedItemsByType count] > 0)
+            return collectedItemsByType;
+        for(WBItem *item in allCollectedItems)
+        {
+            NSString *typeString = [NSString stringWithFormat:@"%d",[item typeIdentifier]];
+            NSMutableArray *typeArray = [collectedItemsByType objectForKey:typeString];
+            if(!typeArray)
+            {
+                typeArray = [NSMutableArray arrayWithCapacity:1];
+                [collectedItemsByType setObject:typeArray forKey:typeString];
+            }
+            [typeArray addObject:item];
+        }
+        return collectedItemsByType;
+    }
 }
 @end

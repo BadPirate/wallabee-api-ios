@@ -26,5 +26,5 @@
 - (id)collectedItems_s;
 
 // Returns the identifier of the set
-- (NSUInteger)identifier;
+- (NSInteger)setIdentifier;
 @end

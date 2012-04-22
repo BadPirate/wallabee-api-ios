@@ -19,8 +19,11 @@
 - (id)name_s;
 
 // Returns User ID, no delay as this is always set on any initialized WBUser
-- (NSUInteger)identifier;
+- (NSInteger)userIdentifier;
 
 // Synchronous - Returns an NSArray of uncollected items, or NSError
 - (id)collectedItems_s;
+
+// Synchronous - Returns an NSMutableDictionary of NSMutableArrays of WBItem objects grouped by type, or NSError
+- (id)collectedItemsByType_s;
 @end
