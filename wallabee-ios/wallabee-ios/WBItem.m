@@ -53,10 +53,10 @@
     return -1;    
 }
 
-- (UIImage *)imageWithWidth:(NSInteger)width result:(void(^)(id result))resultBlock
+- (UIImage *)imageWithWidth:(NSInteger)widthInPixels retina:(BOOL)retinaImage result:(void(^)(id result))resultBlock
 {
     NSString *requestString = [NSString stringWithFormat:@"http://api.wallab.ee/image/item-%d-%d",
-                               [self typeIdentifier],width];  
+                               [self typeIdentifier],widthInPixels];  
     NSURL *URL = [NSURL URLWithString:requestString];
     NSURLRequest *request = [NSURLRequest requestWithURL:URL cachePolicy:NSURLCacheStorageAllowed timeoutInterval:30];
 	NSCachedURLResponse *response = [[NSURLCache sharedURLCache] cachedResponseForRequest:request];
@@ -78,6 +78,8 @@
             return;
         }
         UIImage *image = [UIImage imageWithData:imageData];
+        if(retinaImage)
+            image = [UIImage imageWithCGImage:image.CGImage scale:2 orientation:image.imageOrientation];
         if(!image)
         {
             resultBlockCopy([NSError errorWithDomain:@"WALLABEE" code:[(NSHTTPURLResponse *)response statusCode]

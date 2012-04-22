@@ -30,5 +30,5 @@
 - (NSInteger)typeIdentifier;
 
 // Async / sync - If cached image is available, returns UIImage immediately, otherwise Calls result block with either UIImage or NSError when image is loaded, and returns nil initially
-- (UIImage *)imageWithWidth:(NSInteger)width result:(void(^)(id result))resultBlock;
+- (UIImage *)imageWithWidth:(NSInteger)widthInPixels retina:(BOOL)retinaImage result:(void(^)(id result))resultBlock;
 @end
