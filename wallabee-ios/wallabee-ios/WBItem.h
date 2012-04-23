@@ -36,8 +36,8 @@
 // Async / sync - If cached image is available, returns UIImage immediately, otherwise Calls result block with either UIImage or NSError when image is loaded, and returns nil initially
 - (UIImage *)imageWithWidth:(NSInteger)widthInPixels retina:(BOOL)retinaImage result:(void(^)(id result))resultBlock;
 
-// Sync - returns [NSNumber bool] YES if this is the lowest item the user has collected of this type, NO if not, or NSError
-- (id)isLowestItemNumberForUser_s:(WBUser *)user;
+// Sync - returns [NSNumber] with the delta for item improvement if this is the lower then the item the user has collected of this type, [NSNumber] with -1 if not, or NSError
+- (id)numberImprovementForUser_s:(WBUser *)user;
 
 // Sync - Returns [NSNumber bool] YES if the user has an item of this type, NO if not, or NSError
 - (id)userHasItemLikeThis_s:(WBUser *)user;

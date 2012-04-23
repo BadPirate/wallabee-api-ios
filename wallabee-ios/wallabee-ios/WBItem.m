@@ -132,17 +132,23 @@
     }
 }
 
-- (id)isLowestItemNumberForUser_s:(WBUser *)userChosen
+- (id)numberImprovementForUser_s:(WBUser *)userChosen
 {
     NSMutableDictionary *collectedItemsByType = [userChosen collectedItemsByType_s];
     if(![collectedItemsByType isKindOfClass:[NSMutableDictionary class]])
         return collectedItemsByType;
     NSMutableArray *collectedItemsForType = [collectedItemsByType objectForKey:[NSString stringWithFormat:@"%d",[self typeIdentifier]]];
     if(!collectedItemsForType) return [NSNumber numberWithBool:YES];
+    NSInteger improvement = [self number];
     for(WBItem *item in collectedItemsForType)
         if([item number] < [self number])
-            return [NSNumber numberWithBool:NO];
-    return [NSNumber numberWithBool:YES];
+        {
+            return [NSNumber numberWithInt:-1];
+        }
+        else {
+            improvement = [item number] - [self number];
+        }
+    return [NSNumber numberWithInt:improvement];
 }
 
 - (id)userHasItemLikeThis_s:(WBUser *)userChosen
