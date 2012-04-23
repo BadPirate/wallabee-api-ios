@@ -14,7 +14,7 @@
 @property (nonatomic,retain) NSString *wallabeeAPIKey;
 
 // Maximum Request rate in seconds, default .25 (4 times per second)
-@property (nonatomic,assign) NSTimeInterval maxRequestRate;
+@property (nonatomic,assign) NSTimeInterval maxRequestsPerSecond;
 
 // Returns the shared instance of WBSession (WBSession is a singleton)
 + (WBSession *)instance;

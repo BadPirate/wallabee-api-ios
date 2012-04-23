@@ -10,12 +10,12 @@
 
 @interface WBSession ()
 @property (nonatomic,retain) NSDate *lastRequest;
-@property (nonatomic,retain) NSLock *coolDownLock;
 @property (nonatomic,retain) NSOperationQueue *asyncRequestQueue;
+@property (nonatomic,retain) NSMutableArray *existingRequests;
 @end
 
 @implementation WBSession
-@synthesize maxRequestRate, wallabeeAPIKey, lastRequest, coolDownLock, asyncRequestQueue;
+@synthesize wallabeeAPIKey, lastRequest, asyncRequestQueue, maxRequestsPerSecond, existingRequests;
 + (NSString *)errorStringForResult:(id)result
 {
     NSString *message = [result description];
@@ -36,8 +36,8 @@
     __strong static WBSession *_sharedObject = nil;
     dispatch_once(&pred, ^{
         _sharedObject = [[self alloc] init]; // or some other init method
-        [_sharedObject setMaxRequestRate:0.25];
-        _sharedObject.coolDownLock = [[NSLock alloc] init];
+        _sharedObject.maxRequestsPerSecond = 4;
+        _sharedObject.existingRequests = [NSMutableArray arrayWithCapacity:_sharedObject.maxRequestsPerSecond];
         _sharedObject.asyncRequestQueue = [[NSOperationQueue alloc] init];
     });
     return _sharedObject;
@@ -46,23 +46,28 @@
 + (void)delayForCooldown
 {
     WBSession *instance = [self instance];
-    NSLock *coolDownLock = instance.coolDownLock;
-    [coolDownLock lock]; // Handle only one cooldown request at a time, thread safety
-    if(!instance.lastRequest)
+    NSMutableArray *existingRequests = instance.existingRequests;
+    
+    @synchronized(existingRequests)
     {
-        instance.lastRequest = [NSDate date];
-        [coolDownLock unlock];
+        if([existingRequests count] >= instance.maxRequestsPerSecond)
+        {
+            NSDate *bottomRequest = [existingRequests objectAtIndex:0];
+            NSTimeInterval timeSinceBottomRequest = -[bottomRequest timeIntervalSinceNow];
+            if(timeSinceBottomRequest < 1)
+            {
+                // Wait until it expires...
+                NSTimeInterval sleepPeriod = 1-timeSinceBottomRequest;
+                [NSThread sleepForTimeInterval:sleepPeriod];
+            }
+            
+            // Dump it
+            [existingRequests removeObjectAtIndex:0];
+        }
+        // Add new request time to array
+        [existingRequests addObject:[NSDate date]];
         return;
     }
-    
-    NSTimeInterval timeSinceLastRequest = -[instance.lastRequest timeIntervalSinceNow];
-    if(timeSinceLastRequest < instance.maxRequestRate)
-    {
-        NSTimeInterval sleepPeriod = instance.maxRequestRate-timeSinceLastRequest;
-        [NSThread sleepForTimeInterval:sleepPeriod];
-    }
-    instance.lastRequest = [NSDate date];
-    [coolDownLock unlock];
 }
 
 + (NSMutableURLRequest *)requestForPath:(NSString *)requestPath
