@@ -118,4 +118,10 @@
         return collectedItemsByType;
     }
 }
+
+- (id)refreshCollection_a:(void(^)(id result))handler
+{
+    collectedItems = nil;
+    return [self collectedItems_s];
+}
 @end
