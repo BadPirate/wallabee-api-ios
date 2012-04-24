@@ -119,7 +119,7 @@
     }
 }
 
-- (id)refreshCollection_a:(void(^)(id result))handler
+- (id)refreshCollection_s
 {
     collectedItems = nil;
     return [self collectedItems_s];
