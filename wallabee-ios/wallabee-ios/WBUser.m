@@ -122,6 +122,8 @@
 - (id)refreshCollection_s
 {
     collectedItems = nil;
+    collectedItemsByType = nil;
+    sets = nil;
     return [self collectedItems_s];
 }
 @end
