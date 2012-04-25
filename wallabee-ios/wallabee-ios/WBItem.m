@@ -131,16 +131,10 @@
     }
 }
 
-- (id)numberImprovementForUser:(WBUser *)userChosen handler:(void(^)(id result))asyncHandler;
-{    
-    NSMutableDictionary *collectedItemsByType = [userChosen collectedItems:^(id result) {
-        if([result isKindOfClass:[NSMutableDictionary dictionary]])
-            asyncHandler([self numberImprovementForUser:userChosen handler:asyncHandler]); // Cached result
-        else performBlockMainThread(asyncHandler, result); // error result
-    }];
-    
+- (id)parseNumberImprovementForUser:(WBUser *)userChosen collectedItems:(NSMutableDictionary *)collectedItemsByType
+{
     if(![collectedItemsByType isKindOfClass:[NSMutableDictionary class]])
-        return collectedItemsByType; // Error or nil
+        return collectedItemsByType;
     NSMutableArray *collectedItemsForType = [collectedItemsByType objectForKey:[NSString stringWithFormat:@"%d",[self typeIdentifier]]];
     if(!collectedItemsForType) return [NSNumber numberWithBool:YES];
     NSInteger improvement = [self number];
@@ -155,18 +149,32 @@
     return [NSNumber numberWithInt:improvement];
 }
 
-- (id)userHasItemLikeThis:(WBUser *)userChosen handler:(void(^)(id result))asyncHandler
+- (id)numberImprovementForUser:(WBUser *)userChosen handler:(void(^)(id result))asyncHandler
 {    
-    NSMutableDictionary *collectedItemsByType = [userChosen collectedItems:^(id result) {
-        if([result isKindOfClass:[NSMutableDictionary dictionary]])
-            asyncHandler([self userHasItemLikeThis:userChosen handler:asyncHandler]); // Cached result
-        else performBlockMainThread(asyncHandler,result); // error result
+    NSMutableDictionary *collectedItemsByType = [userChosen collectedItemsByType:^(id result) {
+        asyncHandler([self parseNumberImprovementForUser:userChosen collectedItems:result]);
     }];
-    
+    if(collectedItemsByType)
+        return [self parseNumberImprovementForUser:userChosen collectedItems:collectedItemsByType];
+    return nil; // Async
+}
+
+- (id)parseUserHasItemLikeThis:(NSMutableDictionary *)collectedItemsByType user:(WBUser *)userChosen
+{
     if(![collectedItemsByType isKindOfClass:[NSMutableDictionary class]])
         return collectedItemsByType;
     NSMutableArray *collectedItemsForType = [collectedItemsByType objectForKey:[NSString stringWithFormat:@"%d",[self typeIdentifier]]];
     if(!collectedItemsForType) return [NSNumber numberWithBool:NO];
     return [NSNumber numberWithBool:YES];
+}
+
+- (id)userHasItemLikeThis:(WBUser *)userChosen handler:(void(^)(id result))asyncHandler
+{    
+    NSMutableDictionary *collectedItemsByType = [userChosen collectedItemsByType:^(id result) {
+        asyncHandler([self parseUserHasItemLikeThis:result user:userChosen]);
+    }];
+    if(collectedItemsByType)
+        return [self parseUserHasItemLikeThis:collectedItemsByType user:userChosen];
+    return nil;
 }
 @end
