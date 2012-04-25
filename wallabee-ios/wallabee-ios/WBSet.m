@@ -73,18 +73,10 @@
     return nil; // Will handle at a later date
 }
 
-- (id)collectedItems:(void(^)(id result))asyncHandler;
+- (id)parseCollectedItems:(NSArray *)allItems
 {
-    NSArray *allItems = [self items:^(id result) {
-        if([result isKindOfClass:[NSArray array]])
-            performBlockMainThread(asyncHandler, [self collectedItems:asyncHandler]);
-        else performBlockMainThread(asyncHandler, result);
-    }];  
-
-    // If nil, this will return nil, and the async block will return the correct result to the handler
     if(![allItems isKindOfClass:[NSArray class]])
         return allItems;
-    
     NSMutableArray *collectedItems = [NSMutableArray array];
     for(WBItem *item in allItems)
     {
@@ -92,5 +84,15 @@
             [collectedItems addObject:item];
     }
     return collectedItems;
+}
+
+- (id)collectedItems:(void(^)(id result))asyncHandler;
+{
+    NSArray *allItems = [self items:^(id result) {
+        asyncHandler([self parseCollectedItems:result]);
+    }];  
+    if(allItems)
+        return [self parseCollectedItems:allItems];
+    return nil; // Async
 }
 @end

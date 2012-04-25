@@ -15,15 +15,17 @@
 @property (nonatomic, retain) NSDictionary *data;
 @property (nonatomic, assign) NSInteger completedSets;
 @property (nonatomic, retain) NSMutableArray *collectedItems, *sets;
+@property (nonatomic, retain) NSLock *fetchingCollectedItems;
 @end
 
 @implementation WBUser
-@synthesize data, completedSets, collectedItems, sets;
+@synthesize data, completedSets, collectedItems, sets, fetchingCollectedItems;
 - (id)initWithData:(NSDictionary *)dataDictionary
 {
     self = [super init];
     self.data = dataDictionary;
     self.completedSets = -1; // Need to fetch data
+    self.fetchingCollectedItems = [[NSLock alloc] init];
     return self;
 }
 
@@ -82,9 +84,11 @@
 - (id)parseCollectedItems:(NSArray *)userSets asyncHandler:(void(^)(id result))asyncHandler
 {
     if(![userSets isKindOfClass:[NSArray class]])
+    {
+        [fetchingCollectedItems unlock];
         return userSets; // Error, or nil
+    }
     
-    collectedItems = [NSMutableArray array];
     NSMutableArray *parsedSets = [NSMutableArray arrayWithCapacity:[userSets count]];
     NSMutableArray *errorResults = [NSMutableArray array];
     for(WBSet *set in userSets)
@@ -96,7 +100,10 @@
                 {
                     [errorResults addObject:result];
                     if([errorResults count] == 1)
+                    {
                         performBlockMainThread(asyncHandler, result);
+                        [fetchingCollectedItems unlock];
+                    }
                 }
             }
             else {
@@ -107,7 +114,8 @@
                     if([parsedSets count] == [userSets count])
                     {
                         // Parsed them all successfully!
-                        performBlockMainThread(asyncHandler, parsedSets);
+                        performBlockMainThread(asyncHandler, collectedItems);
+                        [fetchingCollectedItems unlock];
                     }
                 }
             }
@@ -129,16 +137,33 @@
         }
     }
     if([errorResults count] == [userSets count])
+    {
+        [fetchingCollectedItems unlock];
         return [errorResults objectAtIndex:0]; // All Errored out
+    }
     if([parsedSets count] == [userSets count])
+    {
+        [fetchingCollectedItems unlock];
         return collectedItems; // All sets previously parsed
+    }
     return nil; // Will return async.
 }
 
 - (id)collectedItems:(void(^)(id result))asyncHandler
 {
-    if(collectedItems) return collectedItems;
+    @synchronized(self)
+    {
+        if(collectedItems) return collectedItems;
+        collectedItems = [NSMutableArray array];
+    }
     
+    [fetchingCollectedItems lock];
+    if([collectedItems count] > 0)
+    {
+        [fetchingCollectedItems unlock];
+        return collectedItems;
+    }
+
     NSArray *userSets = [self sets:^(id result) {
         [self parseCollectedItems:result asyncHandler:asyncHandler];
     }];
