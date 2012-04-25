@@ -9,13 +9,12 @@
 #import "WBSession.h"
 
 @interface WBSession ()
-@property (nonatomic,retain) NSDate *lastRequest;
-@property (nonatomic,retain) NSOperationQueue *asyncRequestQueue;
-@property (nonatomic,retain) NSMutableArray *existingRequests;
+@property (nonatomic,retain) NSObject *cooldown;
++ (void)delayForCooldown;
 @end
 
 @implementation WBSession
-@synthesize wallabeeAPIKey, lastRequest, asyncRequestQueue, maxRequestsPerSecond, existingRequests;
+@synthesize wallabeeAPIKey, asyncRequestQueue, maxRequestsPerSecond, cooldown;
 + (NSString *)errorStringForResult:(id)result
 {
     NSString *message = [result description];
@@ -37,36 +36,18 @@
     dispatch_once(&pred, ^{
         _sharedObject = [[self alloc] init]; // or some other init method
         _sharedObject.maxRequestsPerSecond = 4;
-        _sharedObject.existingRequests = [NSMutableArray arrayWithCapacity:_sharedObject.maxRequestsPerSecond];
         _sharedObject.asyncRequestQueue = [[NSOperationQueue alloc] init];
+        _sharedObject.cooldown = [[NSObject alloc] init];
     });
     return _sharedObject;
 }
 
 + (void)delayForCooldown
 {
-    WBSession *instance = [self instance];
-    NSMutableArray *existingRequests = instance.existingRequests;
-    
-    @synchronized(existingRequests)
+    @synchronized([[WBSession instance] cooldown])
     {
-        if([existingRequests count] >= instance.maxRequestsPerSecond)
-        {
-            NSDate *bottomRequest = [existingRequests objectAtIndex:0];
-            NSTimeInterval timeSinceBottomRequest = -[bottomRequest timeIntervalSinceNow];
-            if(timeSinceBottomRequest < 1)
-            {
-                // Wait until it expires...
-                NSTimeInterval sleepPeriod = 1-timeSinceBottomRequest;
-                [NSThread sleepForTimeInterval:sleepPeriod];
-            }
-            
-            // Dump it
-            [existingRequests removeObjectAtIndex:0];
-        }
-        // Add new request time to array
-        [existingRequests addObject:[NSDate date]];
-        return;
+        NSTimeInterval sleepInterval = (1/[[self instance] maxRequestsPerSecond]);
+        [NSThread sleepForTimeInterval:sleepInterval];
     }
 }
 
@@ -122,10 +103,9 @@
 + (void)makeAsyncRequest:(NSString *)requestPath result:(void(^)(id response))resultHandler
 {
     WBSession *instance = [self instance];
-    void(^copiedHandler)(id response) = [resultHandler copy]; // Copy because blocks in blocks can release
     
     [[instance asyncRequestQueue] addOperationWithBlock:^{
-        copiedHandler([self makeSyncRequest:requestPath]); 
+        resultHandler([self makeSyncRequest:requestPath]); 
     }];
 }
 
@@ -139,4 +119,14 @@
                                                        error:&error];
     return [self parseResponse:response error:error data:data];
 }
+
+void performBlockMainThread(void(^asyncBlock)(id response), id result)
+{
+    if([NSThread currentThread] != [NSThread mainThread])
+        dispatch_async(dispatch_get_main_queue(), ^{
+            asyncBlock(result);
+        });
+    else asyncBlock(result);
+}
+
 @end

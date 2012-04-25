@@ -30,17 +30,16 @@
 {
     // Run in background, so that waiting for location doesn't jam up main thread.
     
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
-                   ^{
-                       CLLocation *currentLocation = [WBLocationManager currentLocationSync];
-                       if(![currentLocation isKindOfClass:[CLLocation class]])
-                       {
-                           handler(currentLocation); // error
-                           return;
-                       }
-                       id result = [self nearLocation_s:currentLocation.coordinate];
-                       handler(result);
-                   });
+    [[[WBSession instance] asyncRequestQueue] addOperationWithBlock:^{
+        CLLocation *currentLocation = [WBLocationManager currentLocationSync];
+        if(![currentLocation isKindOfClass:[CLLocation class]])
+        {
+            handler(currentLocation); // error
+            return;
+        }
+        id result = [self nearLocation_s:currentLocation.coordinate];
+        performBlockMainThread(handler, result);
+    }];
 }
 
 + (id)nearLocation_s:(CLLocationCoordinate2D)coordinate

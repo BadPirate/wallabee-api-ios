@@ -10,6 +10,9 @@
 #import <UIKit/UIKit.h>
 
 @interface WBSession : NSObject <NSURLConnectionDelegate, NSURLConnectionDataDelegate>
+// For making requests in the background, used by other WBClasses
+@property (nonatomic,retain) NSOperationQueue *asyncRequestQueue;
+
 // API Key, must be set prior to API usage
 @property (nonatomic,retain) NSString *wallabeeAPIKey;
 
@@ -27,4 +30,6 @@
 + (void)makeAsyncRequest:(NSString *)request result:(void(^)(id response))resultHandler;
 
 + (NSString *)errorStringForResult:(id)result;
+
+void performBlockMainThread(void(^asyncBlock)(id response), id result);
 @end

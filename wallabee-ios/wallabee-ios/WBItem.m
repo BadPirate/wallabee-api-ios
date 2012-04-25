@@ -9,6 +9,7 @@
 #import "WBItem.h"
 #import "WBUser.h"
 #import "WBSet.h"
+#import "WBSession.h"
 
 @interface WBItem ()
 @property (nonatomic,retain) NSMutableArray *fetchingImageArray;
@@ -103,7 +104,6 @@
         }
         
         // Okay, this must be the first time then... go and get it!
-        void(^resultBlockCopy)(id result) = [resultBlock copy]; // Block in a block
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             
             NSURLResponse *response = nil;
@@ -113,7 +113,7 @@
                                                                   error:&error];
             if(error)
             {
-                resultBlockCopy(error);
+                performBlockMainThread(resultBlock, error);
                 return;
             }
             [fetchingImageArray removeObject:widthIdentifier];
@@ -122,21 +122,25 @@
                 image = [UIImage imageWithCGImage:image.CGImage scale:2 orientation:image.imageOrientation];
             if(!image)
             {
-                resultBlockCopy([NSError errorWithDomain:@"WALLABEE" code:[(NSHTTPURLResponse *)response statusCode]
-                                                userInfo:nil]);
+                performBlockMainThread(resultBlock, [NSError errorWithDomain:@"WALLABEE" code:[(NSHTTPURLResponse *)response statusCode] userInfo:nil]);
                 return;
             }
-            resultBlockCopy(image);
+            performBlockMainThread(resultBlock, image);
         });
         return nil; // Nil gets returned if we are loading (for sync)
     }
 }
 
-- (id)numberImprovementForUser_s:(WBUser *)userChosen
-{
-    NSMutableDictionary *collectedItemsByType = [userChosen collectedItemsByType_s];
+- (id)numberImprovementForUser:(WBUser *)userChosen handler:(void(^)(id result))asyncHandler;
+{    
+    NSMutableDictionary *collectedItemsByType = [userChosen collectedItems:^(id result) {
+        if([result isKindOfClass:[NSMutableDictionary dictionary]])
+            asyncHandler([self numberImprovementForUser:userChosen handler:asyncHandler]); // Cached result
+        else performBlockMainThread(asyncHandler, result); // error result
+    }];
+    
     if(![collectedItemsByType isKindOfClass:[NSMutableDictionary class]])
-        return collectedItemsByType;
+        return collectedItemsByType; // Error or nil
     NSMutableArray *collectedItemsForType = [collectedItemsByType objectForKey:[NSString stringWithFormat:@"%d",[self typeIdentifier]]];
     if(!collectedItemsForType) return [NSNumber numberWithBool:YES];
     NSInteger improvement = [self number];
@@ -151,9 +155,14 @@
     return [NSNumber numberWithInt:improvement];
 }
 
-- (id)userHasItemLikeThis_s:(WBUser *)userChosen
-{
-    NSMutableDictionary *collectedItemsByType = [userChosen collectedItemsByType_s];
+- (id)userHasItemLikeThis:(WBUser *)userChosen handler:(void(^)(id result))asyncHandler
+{    
+    NSMutableDictionary *collectedItemsByType = [userChosen collectedItems:^(id result) {
+        if([result isKindOfClass:[NSMutableDictionary dictionary]])
+            asyncHandler([self userHasItemLikeThis:userChosen handler:asyncHandler]); // Cached result
+        else performBlockMainThread(asyncHandler,result); // error result
+    }];
+    
     if(![collectedItemsByType isKindOfClass:[NSMutableDictionary class]])
         return collectedItemsByType;
     NSMutableArray *collectedItemsForType = [collectedItemsByType objectForKey:[NSString stringWithFormat:@"%d",[self typeIdentifier]]];

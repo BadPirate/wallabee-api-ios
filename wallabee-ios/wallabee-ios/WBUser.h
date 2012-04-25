@@ -12,8 +12,8 @@
 // Synchronous call, returns a user object or NSError
 + (id)userWithName_s:(NSString *)userName;
 
-// Synchronous call, returns a NSMutableArray of WBSet objects, or NSError
-- (id)sets_s;
+// Sync / Async - If available without network access returns a NSMutableArray of WBSet objects, or NSError, otherwise returns nil, and later returns the result to the asyncHandler
+- (id)sets:(void(^)(id result))asyncHandler;
 
 // Synchronous - Returns NSString name or NSError
 - (id)name_s;
@@ -21,12 +21,12 @@
 // Returns User ID, no delay as this is always set on any initialized WBUser
 - (NSInteger)userIdentifier;
 
-// Synchronous - Returns an NSArray of collected items, or NSError
-- (id)collectedItems_s;
+// Sync / Async - If available without network access returns an NSArray of collected items, or NSError, otherwise returns nil, and later returns the result to the asyncHandler
+- (id)collectedItems:(void(^)(id result))asyncHandler;
 
-// Synchronous - Returns an NSMutableDictionary of NSMutableArrays of WBItem objects grouped by type, or NSError
-- (id)collectedItemsByType_s;
+// Sync / Async - If available without network access returns an NSMutableDictionary of NSMutableArrays of WBItem objects grouped by type, or NSError, otherwise returns nil and later returns the result to asyncHandler
+- (id)collectedItemsByType:(void(^)(id result))asyncHandler;
 
-// Synchronous - Refreshes the users collection, returns NSArray of collected items or NSError
-- (id)refreshCollection_s;
+// Async - Refreshes the users collection, returns NSArray of collected items or NSError to asyncHandler
+- (void)refreshCollection_a:(void(^)(id result))asyncHandler;
 @end
