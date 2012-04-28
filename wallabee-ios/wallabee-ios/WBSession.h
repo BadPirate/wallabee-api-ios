@@ -10,6 +10,9 @@
 #import <UIKit/UIKit.h>
 
 @interface WBSession : NSObject <NSURLConnectionDelegate, NSURLConnectionDataDelegate>
+// Place cache -- To reset, remove all objects
+@property (nonatomic, retain) NSMutableDictionary *cachedPlaces;
+
 // For making requests in the background, used by other WBClasses
 @property (nonatomic,retain) NSOperationQueue *asyncRequestQueue;
 

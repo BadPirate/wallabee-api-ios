@@ -62,7 +62,12 @@
 
 + (id)placeWithIdentifier:(NSInteger)placeIdentifier
 {
-    WBPlace *place = [[self alloc] initWithIdentifier:placeIdentifier];
+    WBSession *session = [WBSession instance];
+    NSString *identifierString = [NSString stringWithFormat:@"%d",placeIdentifier];
+    WBPlace *place = [[session cachedPlaces] objectForKey:identifierString];
+    if(place) return place;
+    place = [[self alloc] initWithIdentifier:placeIdentifier];
+    [[session cachedPlaces] setObject:place forKey:identifierString];
     return place;
 }
 
@@ -70,7 +75,7 @@
 {
     NSString *identifierString = [data objectForKey:@"id"];
     NSAssert1(identifierString,@"No identifier string in data - %@",data);
-    WBPlace *place = [[self alloc] initWithIdentifier:[identifierString integerValue]];
+    WBPlace *place = [self placeWithIdentifier:[identifierString integerValue]];
     place.data = data;
     return place;
 }

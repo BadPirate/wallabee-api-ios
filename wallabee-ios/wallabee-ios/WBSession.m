@@ -10,11 +10,12 @@
 
 @interface WBSession ()
 @property (nonatomic,retain) NSObject *cooldown;
-+ (void)delayForCooldown;
+@property (nonatomic,retain) NSMutableSet *pendingRequests;
+@property (nonatomic,retain) NSLock *requestLock;
 @end
 
 @implementation WBSession
-@synthesize wallabeeAPIKey, asyncRequestQueue, maxRequestsPerSecond, cooldown;
+@synthesize wallabeeAPIKey, asyncRequestQueue, maxRequestsPerSecond, cooldown, cachedPlaces, pendingRequests, requestLock;
 + (NSString *)errorStringForResult:(id)result
 {
     NSString *message = [result description];
@@ -35,20 +36,14 @@
     __strong static WBSession *_sharedObject = nil;
     dispatch_once(&pred, ^{
         _sharedObject = [[self alloc] init]; // or some other init method
-        _sharedObject.maxRequestsPerSecond = 4;
+        _sharedObject.maxRequestsPerSecond = 5;
         _sharedObject.asyncRequestQueue = [[NSOperationQueue alloc] init];
         _sharedObject.cooldown = [[NSObject alloc] init];
+        _sharedObject.cachedPlaces = [NSMutableDictionary dictionary];
+        _sharedObject.pendingRequests = [NSMutableSet setWithCapacity:_sharedObject.maxRequestsPerSecond];
+        _sharedObject.requestLock = [[NSLock alloc] init];
     });
     return _sharedObject;
-}
-
-+ (void)delayForCooldown
-{
-    @synchronized([[WBSession instance] cooldown])
-    {
-        NSTimeInterval sleepInterval = (1/[[self instance] maxRequestsPerSecond]);
-        [NSThread sleepForTimeInterval:sleepInterval];
-    }
 }
 
 + (NSMutableURLRequest *)requestForPath:(NSString *)requestPath
@@ -60,9 +55,29 @@
     NSString *URLString = [NSString stringWithFormat:@"http://api.wallab.ee%@",requestPath];
     NSURL *URL = [NSURL URLWithString:URLString];
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:URL];
+    request.timeoutInterval = 15;
     [request addValue:wallabeeAPIKey forHTTPHeaderField:@"X-WallaBee-API-Key"];
-    NSLog(@"Request - %@",URLString);
+    NSLog(@"Granting Request... - %@",URLString);
+    [[instance requestLock] lock];
+    @synchronized([instance pendingRequests])
+    {
+        [[instance pendingRequests] addObject:request];
+        NSLog(@"Request Granted - %@",URLString);
+        if([[instance pendingRequests] count] < [instance maxRequestsPerSecond])
+            [[instance requestLock] unlock];
+    }
     return request;
+}
+
+- (void)delayedRequestRemoval:(NSMutableURLRequest *)request
+{
+    NSLog(@"Delayed Request Removal");
+    @synchronized(pendingRequests)
+    {
+        [pendingRequests removeObject:request];
+        if([pendingRequests count] == maxRequestsPerSecond-1)
+            [requestLock unlock];
+    }
 }
 
 + (id)parseResponse:(NSURLResponse *)response error:(NSError *)error data:(NSData *)data
@@ -111,12 +126,15 @@
 
 + (id)makeSyncRequest:(NSString *)requestPath
 {
-    [self delayForCooldown];
     NSURLResponse *response = nil;
     NSError *error = nil;
-    NSData *data = [NSURLConnection sendSynchronousRequest:[self requestForPath:requestPath]
+    NSMutableURLRequest *request = [self requestForPath:requestPath];
+    NSData *data = [NSURLConnection sendSynchronousRequest:request
                                            returningResponse:&response
                                                        error:&error];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[WBSession instance] performSelector:@selector(delayedRequestRemoval:) withObject:request afterDelay:1];
+    });
     return [self parseResponse:response error:error data:data];
 }
 
