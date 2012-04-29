@@ -34,6 +34,5 @@
 
 + (NSString *)errorStringForResult:(id)result;
 
-+ (void)resetCache;
 void performBlockMainThread(void(^asyncBlock)(id response), id result);
 @end

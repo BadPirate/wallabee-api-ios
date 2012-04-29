@@ -46,7 +46,8 @@
 +(id)currentLocationSync
 {
     WBLocationManager *instance = [self instance];
-    NSAssert(!(!instance.currentLocation && [NSThread currentThread] == [NSThread mainThread]),@"currentLocationSync can't be called from main thread the first time it is called");
+    BOOL firstRunOnMainThread = !instance.currentLocation && [NSThread currentThread] == [NSThread mainThread];
+    NSAssert(!firstRunOnMainThread,@"currentLocationSync can't be called from main thread the first time it is called");
     @synchronized (self)
     {
         if(instance.currentLocation)

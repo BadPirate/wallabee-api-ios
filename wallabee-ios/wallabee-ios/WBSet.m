@@ -46,30 +46,29 @@
     NSOperationQueue *asyncRequestQueue = [[WBSession instance] asyncRequestQueue];
         
     [asyncRequestQueue addOperationWithBlock:^{
-        NSString *requestString = nil;
         if([self isUserSet])
         {
-            requestString = [NSString stringWithFormat:@"/users/%u/sets/%d",[user userIdentifier],[self setIdentifier]];
+            NSString *requestString = [NSString stringWithFormat:@"/users/%u/sets/%u",[user userIdentifier],[self setIdentifier]];
+            NSDictionary *result = [WBSession makeSyncRequest:requestString];
+            if(![result isKindOfClass:[NSDictionary class]])
+            {
+                performBlockMainThread(asyncHandler, result);
+                return;
+            }
+            NSArray *itemsArray = [result objectForKey:@"items"];
+            items = [NSMutableArray arrayWithCapacity:[itemsArray count]];
+            for(NSDictionary *itemDictionary in itemsArray)
+            {
+                WBItem *item = [[WBItem alloc] initWithDictionary:itemDictionary];
+                item.user = user;
+                item.set = self;
+                [items addObject:item];
+            }
+            performBlockMainThread(asyncHandler, items);
         }
         else {
-            requestString = [NSString stringWithFormat:@"/sets/%d",[self setIdentifier]];
+            performBlockMainThread(asyncHandler, nil); // TODO: Make work for non-user sets
         }
-        NSDictionary *result = [WBSession makeSyncRequest:requestString];
-        if(![result isKindOfClass:[NSDictionary class]])
-        {
-            performBlockMainThread(asyncHandler, result);
-            return;
-        }
-        NSArray *itemsArray = [result objectForKey:@"items"];
-        items = [NSMutableArray arrayWithCapacity:[itemsArray count]];
-        for(NSDictionary *itemDictionary in itemsArray)
-        {
-            WBItem *item = [[WBItem alloc] initWithDictionary:itemDictionary];
-            item.user = user;
-            item.set = self;
-            [items addObject:item];
-        }
-        performBlockMainThread(asyncHandler, items);
     }];
     return nil; // Will handle at a later date
 }
@@ -95,44 +94,5 @@
     if(allItems)
         return [self parseCollectedItems:allItems];
     return nil; // Async
-}
-
-+ (id)allSets:(void(^)(id result))asyncHandler
-{
-    static NSMutableArray *allSets = nil;
-    @synchronized(self)
-    {
-        if(!allSets)
-            allSets = [NSMutableArray array];
-    }
-    if([allSets count] > 0) return allSets;
-    
-    // We're empty.. Gotta build it
-    [[[WBSession instance] asyncRequestQueue] addOperationWithBlock:^{
-        @synchronized(allSets)
-        {
-            if([allSets count] > 0)
-            {
-                performBlockMainThread(asyncHandler, allSets); // Another thread got it.
-                return;
-            }
-            NSDictionary *setListDictionary = [WBSession makeSyncRequest:@"/sets"];
-            if(![setListDictionary isKindOfClass:[NSDictionary class]])
-            {
-                performBlockMainThread(asyncHandler, setListDictionary); // Error
-                return;
-            }
-            NSArray *setDictionaryArray = [setListDictionary objectForKey:@"sets"];
-            NSMutableArray *allSetsTemp = [NSMutableArray arrayWithCapacity:[setDictionaryArray count]];
-            for(NSDictionary *setDictionary in setDictionaryArray)
-            {
-                WBSet *set = [[WBSet alloc] initSetWithData:setDictionary user:nil];
-                [allSetsTemp addObject:set];
-            }
-            [allSets addObjectsFromArray:allSetsTemp];
-            performBlockMainThread(asyncHandler, allSets);
-        }
-    }];
-    return nil;
 }
 @end
