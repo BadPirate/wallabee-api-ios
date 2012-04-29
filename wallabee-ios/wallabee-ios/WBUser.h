@@ -29,4 +29,7 @@
 
 // Async - Refreshes the users collection, returns NSArray of collected items or NSError to asyncHandler
 - (void)refreshCollection_a:(void(^)(id result))asyncHandler;
+
+// Sync / Async - Returns a NSMutableArray of WBItemTypes that the user needs for combinations, NSError if there is an error, or nil if the result will be returned to the asyncHandler
+- (id)missingItemTypes:(void(^)(id result))asyncHandler;
 @end

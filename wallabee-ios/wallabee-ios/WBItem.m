@@ -39,7 +39,10 @@
 
 - (NSInteger)number
 {
-    return [[data objectForKey:@"number"] intValue];
+    NSString *number = [data objectForKey:@"number"];
+    if(![number isKindOfClass:[NSString class]] || [number isEqualToString:@""])
+        return -1;
+    return [number intValue];
 }
 
 - (NSInteger)itemIdentifier

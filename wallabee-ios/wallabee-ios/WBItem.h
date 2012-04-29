@@ -24,7 +24,7 @@
 // Returns the name of the object
 - (NSString *)name;
 
-// Returns the number (ranking) of an item
+// Returns the number (ranking) of an item, -1 if they don't have it
 - (NSInteger)number;
 
 // Returns the identifier of the item, -1 if it can't be determined
