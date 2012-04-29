@@ -15,7 +15,13 @@
 @end
 
 @implementation WBSession
-@synthesize wallabeeAPIKey, asyncRequestQueue, maxRequestsPerSecond, cooldown, cachedPlaces, pendingRequests, requestLock;
+@synthesize wallabeeAPIKey, asyncRequestQueue, maxRequestsPerSecond, cooldown, cachedPlaces, pendingRequests, requestLock, cachedItemTypes;
++ (void)resetCache
+{
+    WBSession *session = [WBSession instance];
+    session.cachedPlaces = nil;
+}
+
 + (NSString *)errorStringForResult:(id)result
 {
     NSString *message = [result description];
@@ -42,6 +48,7 @@
         _sharedObject.cachedPlaces = [NSMutableDictionary dictionary];
         _sharedObject.pendingRequests = [NSMutableSet setWithCapacity:_sharedObject.maxRequestsPerSecond];
         _sharedObject.requestLock = [[NSLock alloc] init];
+        _sharedObject.cachedItemTypes = [NSMutableDictionary dictionary];
     });
     return _sharedObject;
 }

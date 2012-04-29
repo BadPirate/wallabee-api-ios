@@ -11,7 +11,7 @@
 
 @interface WBSession : NSObject <NSURLConnectionDelegate, NSURLConnectionDataDelegate>
 // Place cache -- To reset, remove all objects
-@property (nonatomic, retain) NSMutableDictionary *cachedPlaces;
+@property (nonatomic, retain) NSMutableDictionary *cachedPlaces, *cachedItemTypes;
 
 // For making requests in the background, used by other WBClasses
 @property (nonatomic,retain) NSOperationQueue *asyncRequestQueue;
@@ -33,6 +33,9 @@
 + (void)makeAsyncRequest:(NSString *)request result:(void(^)(id response))resultHandler;
 
 + (NSString *)errorStringForResult:(id)result;
+
+// Resets the less permanent caches
++ (void)resetCache;
 
 void performBlockMainThread(void(^asyncBlock)(id response), id result);
 @end
