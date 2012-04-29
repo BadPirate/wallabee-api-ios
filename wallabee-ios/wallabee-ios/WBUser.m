@@ -14,12 +14,12 @@
 @interface WBUser ()
 @property (nonatomic, retain) NSDictionary *data;
 @property (nonatomic, assign) NSInteger completedSets;
-@property (nonatomic, retain) NSMutableArray *collectedItems, *sets;
+@property (nonatomic, retain) NSMutableArray *collectedItems, *sets, *missingItems;
 @property (nonatomic, retain) NSLock *fetchingCollectedItems;
 @end
 
 @implementation WBUser
-@synthesize data, completedSets, collectedItems, sets, fetchingCollectedItems;
+@synthesize data, completedSets, collectedItems, sets, fetchingCollectedItems, missingItems;
 - (id)initWithData:(NSDictionary *)dataDictionary
 {
     self = [super init];
@@ -205,7 +205,56 @@
 - (void)refreshCollection_a:(void(^)(id result))asyncHandler
 {
     collectedItems = nil;
+    missingItems = nil;
     sets = nil;
     [self collectedItems:asyncHandler];
+}
+
+- (id)parseMissingItems:(NSMutableArray *)allItems collectedItems:(NSMutableDictionary *)collectedItemsByType handler:(void(^)(id result))asyncHandler
+{
+    if(![collectedItemsByType isKindOfClass:[NSMutableDictionary class]])
+        return collectedItemsByType; // Error
+    @synchronized(missingItems)
+    {
+        if([missingItems count] > 0) return missingItems;
+        NSArray *ownedItemTypes = [collectedItemsByType allKeys];
+        NSMutableArray *missingItemsTemp = [NSMutableArray array];
+        for(WBItem *item in allItems)
+            if(![ownedItemTypes containsObject:[NSString stringWithFormat:@"%d",[item typeIdentifier]]])
+                [missingItemsTemp addObject:item];
+        [missingItems addObjectsFromArray:missingItemsTemp];
+    }
+    return missingItems;
+}
+
+- (id)parseMissingItems:(NSMutableArray *)allItems handler:(void(^)(id result))asyncHandler
+{
+    if(![allItems isKindOfClass:[NSMutableArray class]])
+        return allItems; // Error
+    NSMutableDictionary *collectedItemsByType = [self collectedItemsByType:^(id result) {
+        id parseResult = [self parseMissingItems:allItems collectedItems:result handler:asyncHandler];
+        if(parseResult)
+            performBlockMainThread(asyncHandler, parseResult);
+    }];
+    if(!collectedItemsByType) return nil;
+    return [self parseMissingItems:allItems collectedItems:collectedItemsByType handler:asyncHandler];
+}
+
+- (id)missingItems:(void(^)(id result))asyncHandler
+{
+    @synchronized(self)
+    {
+        if(!missingItems)
+            missingItems = [NSMutableArray array];
+    }
+    if([missingItems count] > 0)
+        return missingItems;
+    NSMutableArray *allItems = [WBItem allKnownItems:^(id result) {
+//        id parseResult = [self parseMissingItems:result handler:asyncHandler];
+//        if(parseResult)
+//            performBlockMainThread(asyncHandler, parseResult);
+    }];
+    if(!allItems) return nil;
+    return allItems;
 }
 @end

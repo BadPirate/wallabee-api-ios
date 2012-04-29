@@ -15,7 +15,6 @@
     BOOL _isUserSet;
 }
 @property (nonatomic, readonly) BOOL isUserSet;
-
 // Init method, pass dictionary straight from any other method, user can be nil if the set is not a user set.
 - (id)initSetWithData:(NSDictionary *)dataDictionary user:(WBUser *)user;
 
@@ -27,4 +26,7 @@
 
 // Returns the identifier of the set
 - (NSInteger)setIdentifier;
+
+// Sync / Async - Returns NSMutableArray of all sets (WBSet objects), NSError or nil if async required (calling handler when the result is done)
++ (id)allSets:(void(^)(id result))asyncHandler;
 @end

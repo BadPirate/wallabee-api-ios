@@ -29,4 +29,7 @@
 
 // Async - Refreshes the users collection, returns NSArray of collected items or NSError to asyncHandler
 - (void)refreshCollection_a:(void(^)(id result))asyncHandler;
+
+// Sync / Async - Returns the items NSMutableArray that the user is missing, NSError, or nil if async required (which will later return result to asyncHandler
+- (id)missingItems:(void(^)(id result))asyncHandler;
 @end

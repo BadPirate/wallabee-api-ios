@@ -177,4 +177,59 @@
         return [self parseUserHasItemLikeThis:collectedItemsByType user:userChosen];
     return nil;
 }
+
+- (BOOL)isReleased
+{
+    return ![[self name] isEqualToString:@"?"];
+}
+
++ (id)parseAllKnownItems:(NSMutableArray *)allItems sets:(NSMutableArray *)allSets handler:(void(^)(id result))asyncHandler
+{
+    @synchronized(allItems)
+    {
+        if([allItems count] > 0) return allItems;
+        NSMutableSet *setItemsSet = [NSMutableSet set];
+        for(WBSet *set in allSets)
+        {
+            NSMutableArray *setItems = [set items:^(id result) {
+                id parseResult = [self parseAllKnownItems:allItems sets:allSets handler:asyncHandler];
+                if(parseResult)
+                    performBlockMainThread(asyncHandler, parseResult);
+            }];
+            if(!setItems) return nil; // Async
+            if(![setItems isKindOfClass:[NSMutableArray class]])
+            {
+                return setItems; // Error
+            }
+            [setItemsSet addObject:setItems];
+        }
+        // Phew, made it through that, now lets parse the items.
+        NSMutableArray *allItemsTempArray = [NSMutableArray array];
+        for(NSMutableArray *setItems in [setItemsSet allObjects])
+            for(WBItem *item in setItems)
+                if([item isReleased])
+                    [allItemsTempArray addObject:item];
+        [allItems addObjectsFromArray:allItemsTempArray];
+        return allItems;
+    }
+}
+
++ (id)allKnownItems:(void(^)(id result))asyncHandler
+{
+    static NSMutableArray *allKnownItems = nil;
+    @synchronized(self)
+    {
+        if(!allKnownItems)
+            allKnownItems = [NSMutableArray array];
+    }
+    if([allKnownItems count] > 0)
+        return allKnownItems;
+    NSMutableArray *allSets = [WBSet allSets:^(id result) {
+        id parseResult = [self parseAllKnownItems:result sets:allSets handler:asyncHandler];
+        if(parseResult)
+            performBlockMainThread(asyncHandler, parseResult);
+    }];
+    if(!allSets) return nil; // Handle async
+    return [self parseAllKnownItems:allKnownItems sets:allSets handler:asyncHandler];
+}
 @end

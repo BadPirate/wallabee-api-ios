@@ -16,6 +16,12 @@
 
 @implementation WBSession
 @synthesize wallabeeAPIKey, asyncRequestQueue, maxRequestsPerSecond, cooldown, cachedPlaces, pendingRequests, requestLock;
++ (void)resetCache
+{
+    WBSession *session = [WBSession instance];
+    [session.cachedPlaces removeAllObjects];
+}
+
 + (NSString *)errorStringForResult:(id)result
 {
     NSString *message = [result description];

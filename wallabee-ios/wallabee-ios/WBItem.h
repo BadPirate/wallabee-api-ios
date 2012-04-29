@@ -24,6 +24,9 @@
 // Returns the name of the object
 - (NSString *)name;
 
+// Returns Yes if released, No otherwise
+- (BOOL)isReleased;
+
 // Returns the number (ranking) of an item
 - (NSInteger)number;
 
@@ -41,4 +44,10 @@
 
 // Async / Sync - Returns [NSNumber bool] YES if the user has an item of this type, NO if not, or NSError, if requires a connection, returns nil, and later returns the result to asyncHandler
 - (id)userHasItemLikeThis:(WBUser *)user handler:(void(^)(id result))asyncHandler;
+
+// Async / Sync - Returns [NSNumber bool] YES if the user needs this item for a combo, NO if not, or NSError, if requireds a connection, returns nil and later returns the result to asyncHandler
+//- (id)userNeedsItemForCombo:(WBUser *)user handler:(void(^)(id result))asyncHandler;
+
+// Async / Sync - Returns NSMutableArray of all known items, NSError, or nil (nil means the result will be passed to asyncHandler
++ (id)allKnownItems:(void(^)(id result))asyncHandler;
 @end
