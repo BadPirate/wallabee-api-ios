@@ -3,19 +3,18 @@
 //  wallabee-ios
 //
 //  Created by Kevin Lohman on 4/21/12.
-//  Copyright (c) 2012 Good. All rights reserved.
+//  Copyright (c) 2012 Logic High Software All rights reserved.
 //
 
 #import "WBSession.h"
 
 @interface WBSession ()
 @property (nonatomic,retain) NSObject *cooldown;
-@property (nonatomic,retain) NSMutableSet *pendingRequests;
-@property (nonatomic,retain) NSLock *requestLock;
+@property (nonatomic,retain) NSMutableArray *pendingRequests;
 @end
 
 @implementation WBSession
-@synthesize wallabeeAPIKey, asyncRequestQueue, maxRequestsPerSecond, cooldown, cachedPlaces, pendingRequests, requestLock, cachedItemTypes;
+@synthesize wallabeeAPIKey, asyncRequestQueue, maxRequestsPerSecond, cooldown, cachedPlaces, pendingRequests, cachedItemTypes;
 + (void)resetCache
 {
     WBSession *session = [WBSession instance];
@@ -36,6 +35,22 @@
     return message;
 }
 
+- (void)loadFromDefaults
+{
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    id codedCachedItemTypes = [defaults objectForKey:@"WBCachedItemTypes"];
+    if(codedCachedItemTypes)
+        self.cachedItemTypes = [NSKeyedUnarchiver unarchiveObjectWithData:codedCachedItemTypes];
+}
+
++ (void)saveCache
+{
+    WBSession *session = [WBSession instance];
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    [defaults setObject:[NSKeyedArchiver archivedDataWithRootObject:session.cachedItemTypes] forKey:@"WBCachedItemTypes"];
+    [defaults synchronize];
+}
+
 + (WBSession *)instance
 {
     static dispatch_once_t pred = 0;
@@ -46,9 +61,10 @@
         _sharedObject.asyncRequestQueue = [[NSOperationQueue alloc] init];
         _sharedObject.cooldown = [[NSObject alloc] init];
         _sharedObject.cachedPlaces = [NSMutableDictionary dictionary];
-        _sharedObject.pendingRequests = [NSMutableSet setWithCapacity:_sharedObject.maxRequestsPerSecond];
-        _sharedObject.requestLock = [[NSLock alloc] init];
-        _sharedObject.cachedItemTypes = [NSMutableDictionary dictionary];
+        _sharedObject.pendingRequests = [NSMutableArray arrayWithCapacity:_sharedObject.maxRequestsPerSecond];
+        [_sharedObject loadFromDefaults];
+        if(!_sharedObject.cachedItemTypes)
+            _sharedObject.cachedItemTypes = [NSMutableDictionary dictionary];
     });
     return _sharedObject;
 }
@@ -65,26 +81,45 @@
     request.timeoutInterval = 15;
     [request addValue:wallabeeAPIKey forHTTPHeaderField:@"X-WallaBee-API-Key"];
     NSLog(@"Granting Request... - %@",URLString);
-    [[instance requestLock] lock];
-    @synchronized([instance pendingRequests])
-    {
-        [[instance pendingRequests] addObject:request];
-        NSLog(@"Request Granted - %@",URLString);
-        if([[instance pendingRequests] count] < [instance maxRequestsPerSecond])
-            [[instance requestLock] unlock];
-    }
-    return request;
-}
-
-- (void)delayedRequestRemoval:(NSMutableURLRequest *)request
-{
-    NSLog(@"Delayed Request Removal");
+    NSMutableArray *pendingRequests = [instance pendingRequests];
+    NSUInteger maxRequestsPerSecond = [instance maxRequestsPerSecond];
+    
+    NSDate *oldestRequestDate = nil;
+    NSTimeInterval timeSinceOldestRequest = 0;
     @synchronized(pendingRequests)
     {
-        [pendingRequests removeObject:request];
-        if([pendingRequests count] == maxRequestsPerSecond-1)
-            [requestLock unlock];
+        for(NSDate *requestDate in [NSArray arrayWithArray:pendingRequests])
+            if([requestDate timeIntervalSinceNow] < -1)
+                [pendingRequests removeObject:requestDate];
+            else {
+                oldestRequestDate = requestDate;
+            }
     }
+    @synchronized(oldestRequestDate)
+    {
+        timeSinceOldestRequest = -[oldestRequestDate timeIntervalSinceNow];
+        if(timeSinceOldestRequest < 1 && [pendingRequests count] >= maxRequestsPerSecond)
+        {
+            NSTimeInterval sleepTime = 1-timeSinceOldestRequest;
+            NSLog(@"timeSinceOldestRequest - %f : Sleeping - %f",timeSinceOldestRequest,sleepTime);
+            [NSThread sleepForTimeInterval:sleepTime];
+            @synchronized(pendingRequests)
+            {
+                [pendingRequests removeObject:oldestRequestDate];
+                [pendingRequests addObject:[NSDate date]];
+            }
+        }
+        else if([pendingRequests count] < maxRequestsPerSecond)
+        {
+            [pendingRequests addObject:[NSDate date]];
+        }
+        timeSinceOldestRequest = -[oldestRequestDate timeIntervalSinceNow];
+        NSLog(@"timeSinceOldestRequest - %f",timeSinceOldestRequest);
+    }
+
+    NSLog(@"Request Granted - %@",URLString);
+    
+    return request;
 }
 
 + (id)parseResponse:(NSURLResponse *)response error:(NSError *)error data:(NSData *)data
@@ -139,9 +174,6 @@
     NSData *data = [NSURLConnection sendSynchronousRequest:request
                                            returningResponse:&response
                                                        error:&error];
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[WBSession instance] performSelector:@selector(delayedRequestRemoval:) withObject:request afterDelay:1];
-    });
     return [self parseResponse:response error:error data:data];
 }
 

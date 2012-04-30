@@ -3,7 +3,7 @@
 //  wallabee-ios
 //
 //  Created by Kevin Lohman on 4/21/12.
-//  Copyright (c) 2012 Good. All rights reserved.
+//  Copyright (c) 2012 Logic High Software All rights reserved.
 //
 
 #import "WBUser.h"
@@ -15,12 +15,12 @@
 @interface WBUser ()
 @property (nonatomic, retain) NSDictionary *data;
 @property (nonatomic, assign) NSInteger completedSets;
-@property (nonatomic, retain) NSMutableArray *collectedItems, *sets, *missingItemTypes;
-@property (nonatomic, retain) NSLock *fetchingCollectedItems, *fetchingMissingItemTypes;
+@property (nonatomic, retain) NSMutableArray *collectedItems, *sets, *missingItemTypes, *comboItemsNeeded;
+@property (nonatomic, retain) NSLock *fetchingCollectedItems, *fetchingMissingItemTypes, *fetchingComboItems;
 @end
 
 @implementation WBUser
-@synthesize data, completedSets, collectedItems, sets, fetchingCollectedItems, fetchingMissingItemTypes, missingItemTypes;
+@synthesize data, completedSets, collectedItems, sets, fetchingCollectedItems, fetchingMissingItemTypes, missingItemTypes, comboItemsNeeded, fetchingComboItems;
 - (id)initWithData:(NSDictionary *)dataDictionary
 {
     self = [super init];
@@ -28,6 +28,7 @@
     self.completedSets = -1; // Need to fetch data
     self.fetchingCollectedItems = [[NSLock alloc] init];
     self.fetchingMissingItemTypes = [[NSLock alloc] init];
+    self.fetchingComboItems = [[NSLock alloc] init];
     return self;
 }
 
@@ -48,6 +49,30 @@
     return [NSError errorWithDomain:@"WALLABEE" code:0 userInfo:[NSDictionary dictionaryWithObject:@"Name value not present in data" forKey:NSLocalizedDescriptionKey]];
 }
 
+- (id)sets_s
+{
+    if(sets) return sets;
+    
+    NSString *requestString = [NSString stringWithFormat:@"/users/%@/sets",[self name_s]];
+    NSDictionary *response = [WBSession makeSyncRequest:requestString];
+    if(![response isKindOfClass:[NSDictionary class]])
+    {
+        return response; // Error
+    }
+    NSArray *setsArray = [response objectForKey:@"sets"];
+    sets = [NSMutableArray arrayWithCapacity:[setsArray count]];
+    
+    for(NSDictionary *setDictionary in setsArray)
+    {
+        WBSet *set = [[WBSet alloc] initSetWithData:setDictionary user:self];
+        [sets addObject:set];
+    }
+    
+    completedSets = [[response objectForKey:@"completedSets"] intValue];
+    
+    return sets;
+}
+
 - (id)sets:(void(^)(id result))asyncHandler
 {
     if(sets) return sets;
@@ -55,25 +80,7 @@
     NSOperationQueue *asyncRequestQueue = [[WBSession instance] asyncRequestQueue];
     
     [asyncRequestQueue addOperationWithBlock:^{
-        NSString *requestString = [NSString stringWithFormat:@"/users/%@/sets",[self name_s]];
-        NSDictionary *response = [WBSession makeSyncRequest:requestString];
-        if(![response isKindOfClass:[NSDictionary class]])
-        {
-            asyncHandler(response);
-            return; // Error
-        }
-        NSArray *setsArray = [response objectForKey:@"sets"];
-        sets = [NSMutableArray arrayWithCapacity:[setsArray count]];
-        
-        for(NSDictionary *setDictionary in setsArray)
-        {
-            WBSet *set = [[WBSet alloc] initSetWithData:setDictionary user:self];
-            [sets addObject:set];
-        }
-        
-        completedSets = [[response objectForKey:@"completedSets"] intValue];
-        
-        asyncHandler(sets);
+        performBlockMainThread(asyncHandler, [self sets_s]);
     }];
     return nil; // Result will be returned by async handler
 }
@@ -151,26 +158,47 @@
     return nil; // Will return async.
 }
 
+- (id)collectedItems_s
+{
+    if(collectedItems) return collectedItems;
+    
+    NSMutableArray *allSets = [self sets_s];
+    if(![allSets isKindOfClass:[NSMutableArray class]])
+        return allSets; // Error
+    NSMutableArray *tempCollectedItems = [NSMutableArray array];
+    for(WBSet *set in allSets)
+    {
+        NSMutableArray *setItems = [set items_s];
+        if(![setItems isKindOfClass:[NSArray class]])
+            return setItems; // Error
+        for(WBItem *item in setItems)
+            if(![[item name] isEqualToString:@"?"])
+                [tempCollectedItems addObject:item];
+    }
+    collectedItems = tempCollectedItems;
+    return collectedItems;
+}
+
 - (id)collectedItems:(void(^)(id result))asyncHandler
 {
+    NSOperationQueue *asyncQueue = [[WBSession instance] asyncRequestQueue];
+    if(collectedItems) return collectedItems;
     @synchronized(self)
     {
-        if(collectedItems) return collectedItems;
-        collectedItems = [NSMutableArray array];
+        if(![fetchingCollectedItems tryLock])
+        {
+            [asyncQueue addOperationWithBlock:^{
+                [fetchingCollectedItems lock];
+                [fetchingCollectedItems unlock];
+                performBlockMainThread(asyncHandler, [self collectedItems_s]);
+            }];
+        }
     }
     
-    [fetchingCollectedItems lock];
-    if([collectedItems count] > 0)
-    {
+    [asyncQueue addOperationWithBlock:^{
+        performBlockMainThread(asyncHandler, [self collectedItems_s]);
         [fetchingCollectedItems unlock];
-        return collectedItems;
-    }
-
-    NSArray *userSets = [self sets:^(id result) {
-        [self parseCollectedItems:result asyncHandler:asyncHandler];
     }];
-    if(userSets)
-        return [self parseCollectedItems:userSets asyncHandler:asyncHandler];
     return nil;
 }
 
@@ -211,50 +239,29 @@
     [self collectedItems:asyncHandler];
 }
 
-- (void)parseUserSets:(NSMutableArray *)userSets toSetItems:(NSMutableArray *)userSetItems errorResult:(id)errorResult asyncHandler:(void(^)(id result))asyncHandler
+- (id)missingItemTypes_s
 {
-    id __block setErrorResult = nil;
-    if(userSets && ![userSets isKindOfClass:[NSMutableArray class]])
-    {
-        errorResult = userSets;
-        return; // Error
-    }
+    if(missingItemTypes) return missingItemTypes;
+    NSMutableArray *userSets = [self sets_s];
+    NSMutableArray *tempMissingItemTypes = [NSMutableArray array];
+    
+    if(![userSets isKindOfClass:[NSMutableArray class]])
+        return userSets;
     
     for(WBSet *set in userSets)
     {
-        NSMutableArray *setItems = [set items:^(id result) {
-            if(setErrorResult) return; // Already errored
-            if(![result isKindOfClass:[NSMutableArray class]])
-            {
-                setErrorResult = result;
-                [fetchingMissingItemTypes unlock];
-                performBlockMainThread(asyncHandler, result);
-                return;
-            }
-            [userSetItems addObject:result];
-            if([userSets count] == [userSetItems count]) // Last one!
-                performBlockMainThread(asyncHandler, [self parseMissingItemTypes:userSetItems]);
-        }];
-        if(setItems && ![setItems isKindOfClass:[NSMutableArray class]])
-        {
-            errorResult = setItems;
-            return; // Error
-        }
-        if(setItems)
-            [userSetItems addObject:setItems];
-    }
-}
-
-- (id)parseMissingItemTypes:(NSMutableArray *)userSetItems
-{
-    NSMutableArray *tempMissingItemTypes = [NSMutableArray array];
-    for(NSMutableArray *setItems in userSetItems)
+        NSMutableArray *setItems = [set items_s];
+        if(![setItems isKindOfClass:[NSArray class]])
+            return setItems; // Error
+        
         for(WBItem *item in setItems)
             if([item number] == -1)
             {
-                WBItemType *itemType = [WBItemType itemTypeForTypeIdentifier:[item typeIdentifier]];
-                [tempMissingItemTypes addObject:itemType];
+                WBItemType *itemType = [WBItemType itemTypeForTypeIdentifier_s:[item typeIdentifier]];
+                if(![[itemType name] isEqualToString:@"?"])
+                    [tempMissingItemTypes addObject:itemType];
             }
+    }
     missingItemTypes = tempMissingItemTypes;
     [fetchingMissingItemTypes unlock];
     return missingItemTypes;
@@ -270,47 +277,70 @@
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
                 [fetchingMissingItemTypes lock];
                 [fetchingMissingItemTypes unlock];
-                id retryResult = [self missingItemTypes:asyncHandler];
-                if(retryResult)
-                    performBlockMainThread(asyncHandler, retryResult); // Got something
+                performBlockMainThread(asyncHandler, [self missingItemTypes_s]);
             });
             return nil; // Already fetching, return result when available
         }
     }
     
-    NSMutableArray __block *userSets = nil;
-    NSMutableArray *userSetItems = [NSMutableArray array];
-    id __block errorResult = nil;
-    
-    userSets = [self sets:^(id result) {
-        if(errorResult) {
-            return; // Existing error
-        }
-        userSets = result;
-        [self parseUserSets:userSets toSetItems:userSetItems errorResult:errorResult asyncHandler:asyncHandler];
-        if(errorResult)
-        {
-            [fetchingMissingItemTypes unlock];
-            performBlockMainThread(asyncHandler, errorResult);
-        }
-        if(userSets && [userSetItems count] == [userSets count])
-            performBlockMainThread(asyncHandler, [self parseMissingItemTypes:userSetItems]);
+    [[[WBSession instance] asyncRequestQueue] addOperationWithBlock:^{
+        performBlockMainThread(asyncHandler, [self missingItemTypes_s]);
     }];
-    
-    if(userSets)
-        [self parseUserSets:userSets toSetItems:userSetItems errorResult:errorResult asyncHandler:asyncHandler];
-    
-    if(errorResult)
-    {
-        [fetchingMissingItemTypes unlock];
-        return errorResult;
-    }
-    
-    if(userSets && [userSetItems count] == [userSets count])
-        return [self parseMissingItemTypes:userSetItems];
-    else {
-        return nil; // Async
-    }
+    return nil;
 }
 
+- (NSArray *)recursiveMixForItem_s:(WBItemType *)itemType
+{
+    // Start with the actual mix:
+    NSMutableArray *actualMix = [itemType mix_s];
+    for(WBItemType *subMixType in [NSArray arrayWithArray:actualMix])
+    {
+        // Now add any sub mixes
+        [actualMix addObjectsFromArray:[self recursiveMixForItem_s:subMixType]];
+    }
+    
+    // And return the result
+    return actualMix;
+}
+
+- (id)comboItemsNeeded_s
+{
+    NSMutableArray *allMissingItemTypes = [self missingItemTypes_s];
+    if(![allMissingItemTypes isKindOfClass:[NSMutableArray class]])
+        return allMissingItemTypes; // Error
+    NSMutableArray *tempComboItemsNeeded = [NSMutableArray array];
+    for(WBItemType *missingItemType in allMissingItemTypes)
+    {
+        for(WBItemType *mixItemType in [self recursiveMixForItem_s:missingItemType])
+            if(![tempComboItemsNeeded containsObject:mixItemType])
+                [tempComboItemsNeeded addObject:mixItemType];
+    }
+    comboItemsNeeded = tempComboItemsNeeded;
+    return comboItemsNeeded;
+}
+                                
+- (id)comboItemsNeeded:(void(^)(id result))asyncHandler
+{
+    NSOperationQueue *asyncQueue = [[WBSession instance] asyncRequestQueue];
+    if(comboItemsNeeded) return comboItemsNeeded;
+    @synchronized(self)
+    {
+        if(![fetchingComboItems tryLock]) // Only one combo item fetch at a time
+        {
+            [asyncQueue addOperationWithBlock:^{
+                [fetchingComboItems lock];
+                [fetchingComboItems unlock];
+                performBlockMainThread(asyncHandler, [self comboItemsNeeded_s]);
+            }];
+            return nil;
+        }
+    }
+    
+    [asyncQueue addOperationWithBlock:^{
+        performBlockMainThread(asyncHandler, [self comboItemsNeeded_s]);
+        [fetchingComboItems unlock];
+    }];
+        
+    return comboItemsNeeded;
+}
 @end

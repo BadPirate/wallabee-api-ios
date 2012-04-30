@@ -3,7 +3,7 @@
 //  wallabee-ios
 //
 //  Created by Kevin Lohman on 4/21/12.
-//  Copyright (c) 2012 Good. All rights reserved.
+//  Copyright (c) 2012 Logic High Software All rights reserved.
 //
 
 #import <Foundation/Foundation.h>
@@ -30,6 +30,9 @@
 // Async - Refreshes the users collection, returns NSArray of collected items or NSError to asyncHandler
 - (void)refreshCollection_a:(void(^)(id result))asyncHandler;
 
-// Sync / Async - Returns a NSMutableArray of WBItemTypes that the user needs for combinations, NSError if there is an error, or nil if the result will be returned to the asyncHandler
+// Sync / Async - Returns a NSArray of WBItemTypes that the user is missing, NSError if there is an error, or nil if the result will be returned to the asyncHandler
 - (id)missingItemTypes:(void(^)(id result))asyncHandler;
+
+// Sync / Async - Returns a NSMutableArray of WBItemTypes that the user needs for combinations, NSError if there is an error, or nil if the result will be returned to the asyncHandler
+- (id)comboItemsNeeded:(void(^)(id result))asyncHandler;
 @end

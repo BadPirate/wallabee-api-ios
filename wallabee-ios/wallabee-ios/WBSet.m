@@ -3,7 +3,7 @@
 //  wallabee-ios
 //
 //  Created by Kevin Lohman on 4/21/12.
-//  Copyright (c) 2012 Good. All rights reserved.
+//  Copyright (c) 2012 Logic High Software All rights reserved.
 //
 
 #import "WBSet.h"
@@ -15,16 +15,18 @@
 @property (nonatomic,retain) NSDictionary *data;
 @property (nonatomic,retain) WBUser *user;
 @property (nonatomic,retain) NSMutableArray *items;
+@property (nonatomic,retain) NSLock *fetchingItems;
 @end
 
 @implementation WBSet
-@synthesize data, user, items;
+@synthesize data, user, items, fetchingItems;
 
 - (id)initSetWithData:(NSDictionary *)dataDictionary user:(WBUser *)userPassed
 {
     self = [super init];
     data = dataDictionary;
     user = userPassed;
+    fetchingItems = [[NSLock alloc] init];
     return self;
 }
 
@@ -40,35 +42,53 @@
     return [[data objectForKey:@"id"] intValue];
 }
 
+- (id)items_s
+{
+    if([self isUserSet])
+    {
+        NSString *requestString = [NSString stringWithFormat:@"/users/%u/sets/%u",[user userIdentifier],[self setIdentifier]];
+        NSDictionary *result = [WBSession makeSyncRequest:requestString];
+        if(![result isKindOfClass:[NSDictionary class]])
+        {
+            return result;
+        }
+        NSArray *itemsArray = [result objectForKey:@"items"];
+        items = [NSMutableArray arrayWithCapacity:[itemsArray count]];
+        for(NSDictionary *itemDictionary in itemsArray)
+        {
+            WBItem *item = [[WBItem alloc] initWithDictionary:itemDictionary];
+            item.user = user;
+            item.set = self;
+            [items addObject:item];
+        }
+        return items;
+    }
+    else {
+        NSLog(@"Error - Tried to get items from a non-user set");
+        return nil; // TODO: Make work for non-user sets
+    }
+}
+
 - (id)items:(void(^)(id result))asyncHandler
 {
     if(items) return items;
     NSOperationQueue *asyncRequestQueue = [[WBSession instance] asyncRequestQueue];
-        
-    [asyncRequestQueue addOperationWithBlock:^{
-        if([self isUserSet])
+    
+    @synchronized(self)
+    {
+        if(![fetchingItems tryLock])
         {
-            NSString *requestString = [NSString stringWithFormat:@"/users/%u/sets/%u",[user userIdentifier],[self setIdentifier]];
-            NSDictionary *result = [WBSession makeSyncRequest:requestString];
-            if(![result isKindOfClass:[NSDictionary class]])
-            {
-                performBlockMainThread(asyncHandler, result);
-                return;
-            }
-            NSArray *itemsArray = [result objectForKey:@"items"];
-            items = [NSMutableArray arrayWithCapacity:[itemsArray count]];
-            for(NSDictionary *itemDictionary in itemsArray)
-            {
-                WBItem *item = [[WBItem alloc] initWithDictionary:itemDictionary];
-                item.user = user;
-                item.set = self;
-                [items addObject:item];
-            }
-            performBlockMainThread(asyncHandler, items);
+            [asyncRequestQueue addOperationWithBlock:^{
+                [fetchingItems lock];
+                [fetchingItems unlock];
+                performBlockMainThread(asyncHandler, [self items_s]);
+            }];
         }
-        else {
-            performBlockMainThread(asyncHandler, nil); // TODO: Make work for non-user sets
-        }
+        return nil; // Async
+    }
+
+    [asyncRequestQueue addOperationWithBlock:^{
+        performBlockMainThread(asyncHandler, [self items_s]);
     }];
     return nil; // Will handle at a later date
 }

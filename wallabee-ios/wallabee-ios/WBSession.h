@@ -3,7 +3,7 @@
 //  wallabee-ios
 //
 //  Created by Kevin Lohman on 4/21/12.
-//  Copyright (c) 2012 Good. All rights reserved.
+//  Copyright (c) 2012 Logic High Software All rights reserved.
 //
 
 #import <Foundation/Foundation.h>
@@ -20,7 +20,7 @@
 @property (nonatomic,retain) NSString *wallabeeAPIKey;
 
 // Maximum Request rate in seconds, default .25 (4 times per second)
-@property (nonatomic,assign) NSTimeInterval maxRequestsPerSecond;
+@property (nonatomic,assign) NSUInteger maxRequestsPerSecond;
 
 // Returns the shared instance of WBSession (WBSession is a singleton)
 + (WBSession *)instance;
@@ -36,6 +36,9 @@
 
 // Resets the less permanent caches
 + (void)resetCache;
+
+// Saves any cached item types to "WBCachedItemTypes" in NSUserDefaults (they don't change much), which will reduce the time it takes to do a number of calls
++ (void)saveCache;
 
 void performBlockMainThread(void(^asyncBlock)(id response), id result);
 @end

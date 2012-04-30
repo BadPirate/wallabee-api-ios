@@ -3,7 +3,7 @@
 //  PirateWalla
 //
 //  Created by Kevin Lohman on 4/29/12.
-//  Copyright (c) 2012 Good. All rights reserved.
+//  Copyright (c) 2012 Logic High Software All rights reserved.
 //
 
 #import "WBItemType.h"
@@ -11,7 +11,7 @@
 
 @interface WBItemType ()
 - (id)initWithTypeIdentifier:(NSInteger)typeIdentifierGiven;
-- (void)loadData:(void(^)(id result))handler;
+- (NSDictionary *)loadData_s;
 @property (nonatomic, assign) NSInteger typeIdentifier;
 @property (nonatomic, retain) NSMutableArray *mix;
 @property (nonatomic, retain) NSDictionary *data;
@@ -29,7 +29,24 @@
     return self;
 }
 
-+ (id)itemTypeForTypeIdentifier:(NSInteger)typeIdentifierGiven
+- (void)encodeWithCoder:(NSCoder *)encoder {
+    //Encode properties, other class variables, etc
+    [encoder encodeObject:data forKey:@"data"];
+    [encoder encodeObject:mix forKey:@"mix"];
+    [encoder encodeObject:[NSNumber numberWithInt:typeIdentifier] forKey:@"typeIdentifier"];
+}
+
+- (id)initWithCoder:(NSCoder *)decoder {
+    if((self = [super init])) {
+        //decode properties, other class vars
+        self.data = [decoder decodeObjectForKey:@"data"];
+        self.mix = [decoder decodeObjectForKey:@"mix"];
+        self.typeIdentifier = [[decoder decodeObjectForKey:@"typeIdentifier"] intValue];
+    }
+    return self;
+}
+
++ (id)itemTypeForTypeIdentifier_s:(NSInteger)typeIdentifierGiven
 {
     NSMutableDictionary *cachedItemTypes = [[WBSession instance] cachedItemTypes];
     NSString *typeIdentifierString = [NSString stringWithFormat:@"%d",typeIdentifierGiven];
@@ -37,6 +54,9 @@
     if(cachedItemType)
         return cachedItemType;
     cachedItemType = [[self alloc] initWithTypeIdentifier:typeIdentifierGiven];
+    [cachedItemType loadData_s];
+    if(cachedItemType.data)
+        [WBSession saveCache]; // Item types don't change very often, store this so that you won't have to do it next time.
     [cachedItemTypes setObject:cachedItemType forKey:typeIdentifierString];
     return cachedItemType;
 }
@@ -46,63 +66,50 @@
     return typeIdentifier;
 }
 
-- (void)loadData:(void (^)(id result))handler
+- (NSDictionary *)loadData_s
 {
+    if(data) return data;
     @synchronized(self)
     {
         if(![fetchingData tryLock])
         {
-            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                [fetchingData lock];
-                [fetchingData unlock];
-                handler(data);
-            });
-            return; // Only one fetch at a time
+            [fetchingData lock];
+            [fetchingData unlock];
+            return data;
         }
     }
     
     NSString *requestString = [NSString stringWithFormat:@"/itemtypes/%d",[self typeIdentifier]];
-    [WBSession makeAsyncRequest:requestString result:^(id response) {
-        if([response isKindOfClass:[NSDictionary class]])
-            data = response;
-        [fetchingData unlock];
-        performBlockMainThread(handler, response);
-    }];
+    id result = [WBSession makeSyncRequest:requestString];
+    if([result isKindOfClass:[NSDictionary class]])
+    {
+        data = result;
+    }
+    
+    [fetchingData unlock];
+    return result;
 }
 
-- (id)mix:(void(^)(id result))asyncHandler
+- (id)parseMix_s:(NSArray *)mixArray
+{
+    if(![mixArray isKindOfClass:[NSArray class]])
+        return mixArray;
+    NSMutableArray *mixItemTypeArray = [NSMutableArray arrayWithCapacity:[mixArray count]];
+    for(NSString *typeIdentifierString in mixArray)
+        [mixItemTypeArray addObject:[WBItemType itemTypeForTypeIdentifier_s:[typeIdentifierString intValue]]];
+    mix = mixItemTypeArray;
+    return mix;
+}
+
+- (id)mix_s
 {
     if(mix) return mix;
-    if(data)
-    {
-        mix = [data objectForKey:@"mix"];
-        return mix;
-    }
-    [self loadData:^(id result) {
-        if(![result isKindOfClass:[NSDictionary class]])
-        {
-            performBlockMainThread(asyncHandler, result); // error
-            return;
-        }
-        mix = [result objectForKey:@"mix"];
-        performBlockMainThread(asyncHandler, mix);
-    }];
-    return nil; // Async required
+    return [self parseMix_s:[data objectForKey:@"mix"]];
 }
 
-- (id)name:(void(^)(id result))asyncHandler
+- (id)name
 {
-    if(data)
-        return [data objectForKey:@"name"];
-    [self loadData:^(id result) {
-        if(![result isKindOfClass:[NSDictionary class]])
-        {
-            performBlockMainThread(asyncHandler, result);
-            return;
-        }
-        performBlockMainThread(asyncHandler, [data objectForKey:@"name"]);
-    }];
-    return nil;
+    return [data objectForKey:@"name"];
 }
 
 @end
