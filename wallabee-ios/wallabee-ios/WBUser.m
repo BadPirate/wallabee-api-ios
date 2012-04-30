@@ -292,15 +292,16 @@
 - (NSArray *)recursiveMixForItem_s:(WBItemType *)itemType
 {
     // Start with the actual mix:
-    NSMutableArray *actualMix = [itemType mix_s];
+    NSMutableArray *actualMix = [[itemType mix_s] mutableCopy];
     for(WBItemType *subMixType in [NSArray arrayWithArray:actualMix])
     {
         // Now add any sub mixes
-        [actualMix addObjectsFromArray:[self recursiveMixForItem_s:subMixType]];
+        NSArray *subMixItems = [self recursiveMixForItem_s:subMixType];
+        [actualMix addObjectsFromArray:subMixItems];
     }
     
     // And return the result
-    return actualMix;
+    return [NSArray arrayWithArray:actualMix];
 }
 
 - (id)comboItemsNeeded_s
@@ -311,7 +312,8 @@
     NSMutableArray *tempComboItemsNeeded = [NSMutableArray array];
     for(WBItemType *missingItemType in allMissingItemTypes)
     {
-        for(WBItemType *mixItemType in [self recursiveMixForItem_s:missingItemType])
+        NSArray *recursiveMix = [self recursiveMixForItem_s:missingItemType];
+        for(WBItemType *mixItemType in recursiveMix)
             if(![tempComboItemsNeeded containsObject:mixItemType])
                 [tempComboItemsNeeded addObject:mixItemType];
     }

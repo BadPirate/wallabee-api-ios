@@ -57,7 +57,7 @@
     __strong static WBSession *_sharedObject = nil;
     dispatch_once(&pred, ^{
         _sharedObject = [[self alloc] init]; // or some other init method
-        _sharedObject.maxRequestsPerSecond = 5;
+        _sharedObject.maxRequestsPerSecond = 4;
         _sharedObject.asyncRequestQueue = [[NSOperationQueue alloc] init];
         _sharedObject.cooldown = [[NSObject alloc] init];
         _sharedObject.cachedPlaces = [NSMutableDictionary dictionary];

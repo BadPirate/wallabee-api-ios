@@ -98,7 +98,7 @@
     for(NSString *typeIdentifierString in mixArray)
         [mixItemTypeArray addObject:[WBItemType itemTypeForTypeIdentifier_s:[typeIdentifierString intValue]]];
     mix = mixItemTypeArray;
-    return mix;
+    return [NSArray arrayWithArray:mix];
 }
 
 - (id)mix_s

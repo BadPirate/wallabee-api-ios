@@ -41,4 +41,7 @@
 
 // Async / Sync - Returns [NSNumber bool] YES if the user has an item of this type, NO if not, or NSError, if requires a connection, returns nil, and later returns the result to asyncHandler
 - (id)userHasItemLikeThis:(WBUser *)user handler:(void(^)(id result))asyncHandler;
+
+// Async / Sync - Return [NSNumber bool] YES if the user needs this item for a mix, No if not, NSError for error, or nil if will return later to asyncHandler
+- (id)userNeedsForCombo:(WBUser *)user handler:(void(^)(id result))asyncHandler;
 @end

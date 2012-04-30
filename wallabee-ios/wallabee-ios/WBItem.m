@@ -10,6 +10,7 @@
 #import "WBUser.h"
 #import "WBSet.h"
 #import "WBSession.h"
+#import "WBItemType.h"
 
 @interface WBItem ()
 @property (nonatomic,retain) NSMutableArray *fetchingImageArray;
@@ -180,4 +181,24 @@
         return [self parseUserHasItemLikeThis:collectedItemsByType user:userChosen];
     return nil;
 }
+
+- (id)parseComboItemsNeeded:(NSArray *)comboItemsNeeded
+{
+    if(!comboItemsNeeded) return nil; // Async
+    if(![comboItemsNeeded isKindOfClass:[NSArray class]])
+        return comboItemsNeeded; // Error
+    for(WBItemType *neededItemType in comboItemsNeeded)
+        if([neededItemType typeIdentifier] == [self typeIdentifier])
+            return [NSNumber numberWithBool:YES];
+    return [NSNumber numberWithBool:NO];
+}
+
+- (id)userNeedsForCombo:(WBUser *)userPassed handler:(void(^)(id result))asyncHandler
+{
+    NSMutableArray *comboItemsNeeded = [userPassed comboItemsNeeded:^(id result) {
+        performBlockMainThread(asyncHandler, result);
+    }];
+    return [self parseComboItemsNeeded:comboItemsNeeded];
+}
+
 @end
