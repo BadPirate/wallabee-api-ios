@@ -112,4 +112,23 @@
     return [data objectForKey:@"name"];
 }
 
+- (id)makes_s
+{
+    NSMutableArray *makes = [NSMutableArray array];
+    NSMutableDictionary *cached = [[WBSession instance] cachedItemTypes];
+    
+    for(WBItemType *itemType in [cached allValues])
+    {
+        NSArray *cachedMix = [itemType mix_s];
+        if([cachedMix count] == 0)
+            continue;
+        if(![cachedMix isKindOfClass:[NSArray class]])
+            return cachedMix; // Error
+        for(WBItemType *mixItemType in cachedMix)
+            if(mixItemType == self && ![makes containsObject:itemType])
+                [makes addObject:itemType];
+    }
+    
+    return makes;
+}
 @end

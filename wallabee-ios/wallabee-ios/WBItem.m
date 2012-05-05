@@ -196,9 +196,13 @@
 - (id)userNeedsForCombo:(WBUser *)userPassed handler:(void(^)(id result))asyncHandler
 {
     NSMutableArray *comboItemsNeeded = [userPassed comboItemsNeeded:^(id result) {
-        performBlockMainThread(asyncHandler, result);
+        performBlockMainThread(asyncHandler, [self parseComboItemsNeeded:result]);
     }];
     return [self parseComboItemsNeeded:comboItemsNeeded];
 }
 
+- (WBItemType *)itemType_s
+{
+    return [WBItemType itemTypeForTypeIdentifier_s:[self typeIdentifier]];
+}
 @end

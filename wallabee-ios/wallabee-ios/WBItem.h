@@ -8,7 +8,7 @@
 
 #import <UIKit/UIKit.h>
 
-@class WBSet, WBUser, WBPlace;
+@class WBSet, WBUser, WBPlace, WBItemType;
 
 @interface WBItem : NSObject
 @property (nonatomic,retain) WBPlace *place;
@@ -44,4 +44,7 @@
 
 // Async / Sync - Return [NSNumber bool] YES if the user needs this item for a mix, No if not, NSError for error, or nil if will return later to asyncHandler
 - (id)userNeedsForCombo:(WBUser *)user handler:(void(^)(id result))asyncHandler;
+
+// Sync Returns an itemType Object
+- (WBItemType *)itemType_s;
 @end

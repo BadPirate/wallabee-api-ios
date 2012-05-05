@@ -316,6 +316,7 @@
         for(WBItemType *mixItemType in recursiveMix)
             if(![tempComboItemsNeeded containsObject:mixItemType])
                 [tempComboItemsNeeded addObject:mixItemType];
+                
     }
     comboItemsNeeded = tempComboItemsNeeded;
     return comboItemsNeeded;

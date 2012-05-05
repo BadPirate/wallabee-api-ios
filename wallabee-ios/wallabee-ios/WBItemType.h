@@ -20,4 +20,7 @@
 
 // Returns NSString name for itemType
 - (id)name;
+
+// Sync - Returns NSMutableArray of WBItemType objects that this item type mixes to make or NSError, only uses cached WBItemType objects as source, so may be incomplete
+- (id)makes_s;
 @end
